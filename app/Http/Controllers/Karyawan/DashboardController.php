@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use App\Models\Overtime;
 use App\Models\Leave;
 use Carbon\Carbon;
 
@@ -41,10 +40,6 @@ class DashboardController extends Controller
         ];
 
         // Pending requests
-        $pendingOvertimes = Overtime::where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->count();
-
         $pendingLeaves = Leave::where('user_id', $user->id)
             ->where('status', 'pending')
             ->count();
@@ -58,7 +53,6 @@ class DashboardController extends Controller
         return view('karyawan.dashboard', compact(
             'todayAttendance',
             'monthlyStats',
-            'pendingOvertimes',
             'pendingLeaves',
             'recentAttendances'
         ));

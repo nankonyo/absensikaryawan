@@ -19,6 +19,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        try {
+            $timezone = \App\Models\Setting::get('timezone');
+
+            if ($timezone && in_array($timezone, timezone_identifiers_list(), true)) {
+                config(['app.timezone' => $timezone]);
+                date_default_timezone_set($timezone);
+            }
+        } catch (\Throwable $e) {
+            // Settings table may not exist yet (fresh install / migration).
+        }
     }
 }

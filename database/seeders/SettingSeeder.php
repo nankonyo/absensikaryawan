@@ -10,6 +10,14 @@ class SettingSeeder extends Seeder
     public function run(): void
     {
         $settings = [
+            // Regional
+            [
+                'key' => 'timezone',
+                'value' => 'Asia/Jakarta',
+                'type' => 'string',
+                'description' => 'Application timezone',
+            ],
+
             // Work hours
             [
                 'key' => 'work_start_time',
@@ -29,6 +37,14 @@ class SettingSeeder extends Seeder
                 'type' => 'integer',
                 'description' => 'Late tolerance in minutes',
             ],
+
+            // Leave
+            [
+                'key' => 'annual_leave_quota',
+                'value' => '12',
+                'type' => 'integer',
+                'description' => 'Annual leave quota in days',
+            ],
             
             // Face recognition
             [
@@ -39,48 +55,28 @@ class SettingSeeder extends Seeder
             ],
             [
                 'key' => 'face_recognition_threshold',
-                'value' => '70',
+                'value' => '80',
                 'type' => 'integer',
                 'description' => 'Minimum face recognition score (0-100)',
-            ],
-            
-            // Payroll
-            [
-                'key' => 'late_penalty_per_minute',
-                'value' => '5000',
-                'type' => 'integer',
-                'description' => 'Penalty amount per minute late (IDR)',
-            ],
-            [
-                'key' => 'overtime_rate_per_hour',
-                'value' => '50000',
-                'type' => 'integer',
-                'description' => 'Overtime rate per hour (IDR)',
-            ],
-            [
-                'key' => 'leave_deduction_per_day',
-                'value' => '100000',
-                'type' => 'integer',
-                'description' => 'Leave deduction per day (IDR)',
             ],
             
             // Company info
             [
                 'key' => 'company_name',
-                'value' => 'PT. Absensi Modern Indonesia',
+                'value' => 'Raja Sakti Telematika',
                 'type' => 'string',
                 'description' => 'Company name',
             ],
             [
                 'key' => 'company_address',
-                'value' => 'Jl. Sudirman No. 123, Jakarta',
+                'value' => 'Jl. Boulevard Raya Barat, RSA5 No 32, RT.001/RW.002, Jaka Setia, Kec. Bekasi Sel., Kota Bks, Jawa Barat 17147, Indonesia',
                 'type' => 'string',
                 'description' => 'Company address',
             ],
         ];
 
         foreach ($settings as $setting) {
-            Setting::create($setting);
+            Setting::updateOrCreate(['key' => $setting['key']], $setting);
         }
     }
 }

@@ -17,15 +17,16 @@ class RedirectBasedOnRole
     {
         if (auth()->check()) {
             $user = auth()->user();
-            
-            // Redirect based on role
-            if ($user->role->name === 'admin') {
+
+            if ($user->isAdmin()) {
                 return redirect()->route('admin.dashboard');
-            } elseif ($user->role->name === 'atasan') {
-                return redirect()->route('atasan.dashboard');
-            } elseif ($user->role->name === 'karyawan') {
-                return redirect()->route('karyawan.dashboard');
             }
+
+            if ($user->isAtasan()) {
+                return redirect()->route('atasan.dashboard');
+            }
+
+            return redirect()->route('karyawan.dashboard');
         }
 
         return $next($request);

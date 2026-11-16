@@ -16,7 +16,7 @@ class GpsValidationService
         if (!$office) {
             return [
                 'valid' => false,
-                'message' => 'No active office location found',
+                'message' => __('ui.gps_office_missing'),
                 'distance' => null,
             ];
         }
@@ -27,8 +27,8 @@ class GpsValidationService
         return [
             'valid' => $isWithin,
             'message' => $isWithin 
-                ? 'Location valid' 
-                : 'You are outside office radius',
+                ? __('ui.gps_valid') 
+                : __('ui.gps_outside'),
             'distance' => round($distance, 2),
             'radius' => $office->radius,
             'office_name' => $office->name,

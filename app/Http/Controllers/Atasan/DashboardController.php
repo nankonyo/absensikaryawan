@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Atasan;
 
 use App\Http\Controllers\Controller;
-use App\Models\Overtime;
-use App\Models\Leave;
 use App\Models\Attendance;
+use App\Models\Leave;
 use App\Models\User;
 use Carbon\Carbon;
 
@@ -14,21 +13,18 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        
-        // Get subordinates
-        $subordinates = User::where('supervisor_id', $user->id)->get();
-        $subordinateIds = $subordinates->pluck('id');
 
-        // Pending approvals
-        $pendingOvertimes = Overtime::whereIn('user_id', $subordinateIds)
-            ->where('status', 'pending')
-            ->count();
+        $subordinates = User::whereIn('id', $user->descendantIds())
+            ->with(['role', 'department', 'unit', 'supervisor'])
+            ->orderBy('name')
+            ->get();
+
+        $subordinateIds = $subordinates->pluck('id');
 
         $pendingLeaves = Leave::whereIn('user_id', $subordinateIds)
             ->where('status', 'pending')
             ->count();
 
-        // Today's team attendance
         $today = Carbon::today();
         $todayAttendances = Attendance::whereIn('user_id', $subordinateIds)
             ->whereDate('date', $today)
@@ -42,13 +38,7 @@ class DashboardController extends Controller
             'absent' => $subordinates->count() - $todayAttendances->count(),
         ];
 
-        // Recent approval requests
-        $recentOvertimes = Overtime::whereIn('user_id', $subordinateIds)
-            ->where('status', 'pending')
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
+        $groupedTeam = $subordinates->groupBy(fn (User $member) => $user->teamGroupName($member));
 
         $recentLeaves = Leave::whereIn('user_id', $subordinateIds)
             ->where('status', 'pending')
@@ -59,11 +49,10 @@ class DashboardController extends Controller
 
         return view('atasan.dashboard', compact(
             'subordinates',
-            'pendingOvertimes',
+            'groupedTeam',
             'pendingLeaves',
             'teamStats',
             'todayAttendances',
-            'recentOvertimes',
             'recentLeaves'
         ));
     }

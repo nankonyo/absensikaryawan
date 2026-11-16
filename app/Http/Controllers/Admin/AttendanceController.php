@@ -10,26 +10,42 @@ class AttendanceController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Attendance::with('user');
+        $search = trim((string) $request->query('q'));
+        $month = (string) $request->query('month', now()->format('Y-m'));
+        $status = $request->query('status');
+        $perPage = in_array($request->integer('per_page'), [5, 10, 15, 25, 50, 100], true)
+            ? $request->integer('per_page')
+            : 10;
 
-        // Filter by date
-        if ($request->filled('date')) {
-            $query->whereDate('date', $request->date);
+        $query = Attendance::with('user.department');
+
+        // Search by employee name or employee ID
+        if ($search !== '') {
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('employee_id', 'like', "%{$search}%");
+            });
         }
 
-        // Filter by user
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->user_id);
+        // Filter by month and year
+        if ($month !== '' && preg_match('/^(\d{4})-(\d{2})$/', $month, $matches)) {
+            $query->whereYear('date', $matches[1])->whereMonth('date', $matches[2]);
         }
 
         // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        if ($status) {
+            $query->where('status', $status);
         }
 
-        $attendances = $query->orderBy('date', 'desc')->paginate(20);
+        $attendances = $query->orderBy('date', 'desc')->paginate($perPage)->withQueryString();
 
-        return view('admin.attendances.index', compact('attendances'));
+        return view('admin.attendances.index', [
+            'attendances' => $attendances,
+            'search' => $search,
+            'month' => $month,
+            'status' => $status,
+            'perPage' => $perPage,
+        ]);
     }
 
     public function show(Attendance $attendance)

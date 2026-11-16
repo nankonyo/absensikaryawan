@@ -1,105 +1,130 @@
 <x-app-layout>
-    <x-slot name="header">Attendances</x-slot>
-    
-    <x-slot name="sidebar">
-        <x-nav-link href="{{ route('admin.dashboard') }}">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-            </svg>
-            <span>Dashboard</span>
-        </x-nav-link>
-
-        <x-nav-link href="{{ route('admin.attendances.index') }}" :active="true">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-            </svg>
-            <span>Attendances</span>
-        </x-nav-link>
-    </x-slot>
-
-    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Attendance Records</h2>
-
-    <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input type="date" name="date" value="{{ request('date') }}" placeholder="Date"
-                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
-            <select name="user_id" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
-                <option value="">All Employees</option>
-                <!-- Add user options here -->
-            </select>
-            <select name="status" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white">
-                <option value="">All Status</option>
-                <option value="present">Present</option>
-                <option value="late">Late</option>
-            </select>
-            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
-                Filter
-            </button>
-        </form>
+    <x-slot name="header">{{ __('ui.attendances') }}</x-slot>
+    <div class="mb-6 flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-gray-900">{{ __('ui.attendance_records') }}</h2>
     </div>
 
-    <!-- Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <table class="w-full">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Employee</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Check In</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Check Out</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                @forelse($attendances as $attendance)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 font-semibold">
-                                    {{ substr($attendance->user->name, 0, 1) }}
-                                </div>
-                                <div class="ml-3">
-                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $attendance->user->name }}</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $attendance->user->employee_id }}</p>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {{ $attendance->date->format('d M Y') }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {{ $attendance->check_in ? \Carbon\Carbon::parse($attendance->check_in)->format('H:i') : '-' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {{ $attendance->check_out ? \Carbon\Carbon::parse($attendance->check_out)->format('H:i') : '-' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            @if($attendance->late_duration > 0)
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                                    Late {{ $attendance->late_duration }} min
-                                </span>
-                            @else
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                    On Time
-                                </span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="{{ route('admin.attendances.show', $attendance) }}" class="text-blue-600 dark:text-blue-400 hover:underline">View</a>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                            No attendance records found
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+    <form method="GET" action="{{ route('admin.attendances.index') }}" class="mb-4 flex flex-col sm:flex-row gap-2">
+        <input
+            type="search"
+            name="q"
+            value="{{ $search }}"
+            placeholder="{{ __('ui.search_attendances') }}"
+            class="flex-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500"
+        >
+        <input
+            type="month"
+            name="month"
+            value="{{ $month }}"
+            class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500"
+        >
+        <select name="status" onchange="this.form.submit()"
+                class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
+            <option value="">{{ __('ui.all_status') }}</option>
+            <option value="valid" @selected($status === 'valid')>{{ __('ui.statuses.valid') }}</option>
+            <option value="pending" @selected($status === 'pending')>{{ __('ui.statuses.pending') }}</option>
+            <option value="invalid" @selected($status === 'invalid')>{{ __('ui.statuses.invalid') }}</option>
+        </select>
+        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+            {{ __('ui.filter') }}
+        </button>
+        @if($search !== '' || $status || $month !== now()->format('Y-m'))
+            <a href="{{ route('admin.attendances.index') }}" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition text-center">
+                {{ __('ui.reset') }}
+            </a>
+        @endif
+        <label class="flex items-center gap-2 text-sm text-gray-600">
+            {{ __('ui.per_page') }}
+            <select name="per_page" onchange="this.form.submit()"
+                    class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
+                @foreach([5, 10, 15, 25, 50, 100] as $option)
+                    <option value="{{ $option }}" @selected((int) $perPage === $option)>{{ $option }}</option>
+                @endforeach
+            </select>
+        </label>
+    </form>
+
+    <x-table-view
+        :headers="[
+            __('ui.employee'),
+            __('ui.date'),
+            __('ui.check_in'),
+            __('ui.check_out'),
+            __('ui.status'),
+            __('ui.actions'),
+        ]"
+        :empty="__('ui.no_attendance_records')"
+    >
+        @foreach($attendances as $attendance)
+            <tr>
+                <td data-label="{{ __('ui.employee') }}" class="px-6 py-4 whitespace-nowrap">
+                    <x-employee-cell :user="$attendance->user" />
+                </td>
+                <td data-label="{{ __('ui.date') }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ $attendance->date->format('d/m/Y') }}
+                </td>
+                <td data-label="{{ __('ui.check_in') }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ $attendance->check_in ? \Carbon\Carbon::parse($attendance->check_in)->format('H:i') : '-' }}
+                </td>
+                <td data-label="{{ __('ui.check_out') }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ $attendance->check_out ? \Carbon\Carbon::parse($attendance->check_out)->format('H:i') : '-' }}
+                </td>
+                <td data-label="{{ __('ui.status') }}" class="px-6 py-4 whitespace-nowrap">
+                    @if($attendance->status !== 'valid')
+                        <span class="inline-flex items-center rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700">
+                            {{ $attendance->statusLabel() }}
+                        </span>
+                    @elseif($attendance->late_duration > 0)
+                        <span class="inline-flex items-center rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700">
+                            {{ $attendance->lateDurationLabel() }}
+                        </span>
+                    @else
+                        <span class="inline-flex items-center rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700">
+                            {{ __('ui.on_time') }}
+                        </span>
+                    @endif
+                </td>
+                <td data-label="{{ __('ui.actions') }}" class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="relative inline-block text-left" x-data="{ open: false, top: 0, left: 0 }">
+                        <button
+                            type="button"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                            aria-label="{{ __('ui.actions') }}"
+                            :aria-expanded="open"
+                            @click="
+                                const rect = $el.getBoundingClientRect();
+                                const menuHeight = 72;
+
+                                open = ! open;
+                                top = rect.bottom + menuHeight > window.innerHeight
+                                    ? rect.top - menuHeight - 4
+                                    : rect.bottom + 4;
+                                left = Math.max(8, Math.min(rect.right - 192, window.innerWidth - 200));
+                            "
+                            @keydown.escape.window="open = false"
+                        >
+                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path d="M10 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM10 11.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM10 17a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
+                            </svg>
+                        </button>
+
+                        <div
+                            x-show="open"
+                            x-transition
+                            @click.outside="open = false"
+                            :style="`top: ${top}px; left: ${left}px;`"
+                            class="fixed z-50 w-48 rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5"
+                            style="display: none;"
+                        >
+                            <a href="{{ route('admin.attendances.show', $attendance) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                {{ __('ui.view') }}
+                            </a>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        @endforeach
+    </x-table-view>
 
     <div class="mt-6">
         {{ $attendances->links() }}

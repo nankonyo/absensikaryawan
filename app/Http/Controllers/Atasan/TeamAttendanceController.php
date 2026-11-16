@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Atasan;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\Attendance;
-use Illuminate\Http\Request;
+use App\Models\Department;
+use App\Models\Unit;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class TeamAttendanceController extends Controller
 {
@@ -14,36 +16,76 @@ class TeamAttendanceController extends Controller
     {
         $user = auth()->user();
         $date = $request->get('date', Carbon::today()->format('Y-m-d'));
-        
-        $subordinates = User::where('supervisor_id', $user->id)->get();
-        $subordinateIds = $subordinates->pluck('id');
+        $departmentId = $request->integer('department_id') ?: null;
+        $unitId = $request->integer('unit_id') ?: null;
+        $canViewAll = $user->canViewAllTeamAttendance();
 
-        $attendances = Attendance::whereIn('user_id', $subordinateIds)
-            ->whereDate('date', $date)
-            ->with('user')
+        $departments = Department::orderBy('name')->get();
+        $units = $departmentId
+            ? Unit::where('department_id', $departmentId)->orderBy('name')->get()
+            : collect();
+
+        if (! $units->contains('id', $unitId)) {
+            $unitId = null;
+        }
+
+        $members = $canViewAll
+            ? User::whereHas('role', fn ($query) => $query->where('name', '!=', 'admin'))
+            : User::whereIn('id', $user->descendantIds());
+
+        $members = $members
+            ->with(['role', 'department', 'unit', 'supervisor'])
+            ->when($departmentId, fn ($query) => $query->where('department_id', $departmentId))
+            ->when($unitId, fn ($query) => $query->where('unit_id', $unitId))
+            ->orderBy('name')
             ->get();
 
-        return view('atasan.team-attendance.index', compact('subordinates', 'attendances', 'date'));
+        $attendances = Attendance::whereIn('user_id', $members->pluck('id'))
+            ->whereDate('date', $date)
+            ->get()
+            ->keyBy('user_id');
+
+        $groupedTeam = $canViewAll
+            ? $members->groupBy(fn (User $member) => sprintf(
+                '%s — %s',
+                $member->department?->name ?? __('ui.no_department'),
+                $member->unit?->name ?? __('ui.no_unit'),
+            ))->sortKeys()
+            : $members->groupBy(fn (User $member) => $user->teamGroupName($member));
+
+        $routePrefix = $request->routeIs('admin.*') ? 'admin.team-attendance' : 'atasan.team-attendance';
+
+        return view('atasan.team-attendance.index', compact(
+            'groupedTeam',
+            'attendances',
+            'date',
+            'departments',
+            'units',
+            'departmentId',
+            'unitId',
+            'routePrefix',
+        ));
     }
 
     public function show(User $user, Request $request)
     {
-        // Ensure user is subordinate
-        if ($user->supervisor_id !== auth()->id()) {
-            abort(403);
-        }
+        $verifier = auth()->user()->canViewAllTeamAttendance();
+
+        abort_unless($verifier || in_array($user->id, auth()->user()->descendantIds(), true), 403);
 
         $month = $request->get('month', Carbon::now()->format('Y-m'));
-
         $date = Carbon::createFromFormat('Y-m', $month);
-        $startDate = $date->copy()->startOfMonth();
-        $endDate = $date->copy()->endOfMonth();
 
         $attendances = Attendance::where('user_id', $user->id)
-            ->whereBetween('date', [$startDate, $endDate])
+            ->whereBetween('date', [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()])
             ->orderBy('date', 'desc')
-            ->get();
+            ->paginate(15)
+            ->withQueryString();
 
-        return view('atasan.team-attendance.show', compact('user', 'attendances', 'month'));
+        $user->load('role', 'department', 'unit', 'supervisor');
+
+        $routePrefix = $request->routeIs('admin.*') ? 'admin.team-attendance' : 'atasan.team-attendance';
+
+        return view('atasan.team-attendance.show', compact('user', 'attendances', 'month', 'routePrefix'));
     }
 }

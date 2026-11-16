@@ -1,10 +1,10 @@
 <section>
     <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+        <h2 class="text-lg font-medium text-gray-900">
             {{ __('Profile Information') }}
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        <p class="mt-1 text-sm text-gray-600">
             {{ __("Update your account's profile information and email address.") }}
         </p>
     </header>
@@ -13,9 +13,28 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
+    <form method="post" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="mt-6 space-y-6">
         @csrf
         @method('patch')
+
+        <div class="flex items-center gap-4">
+            @if($user->avatar_url)
+                <img src="{{ $user->avatar_url }}" alt="{{ $user->name }}"
+                     class="h-20 w-20 rounded-full object-cover border border-gray-200">
+            @else
+                <div class="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-500">
+                    {{ strtoupper(substr($user->name, 0, 1)) }}
+                </div>
+            @endif
+
+            <div class="flex-1">
+                <x-input-label for="avatar" :value="__('ui.avatar_face_reference')" />
+                <input id="avatar" name="avatar" type="file" accept="image/*"
+                       class="mt-1 block w-full text-sm text-gray-700 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700">
+                <p class="mt-1 text-xs text-gray-500">{{ $user->avatar ? __('ui.avatar_keep_help') : __('ui.avatar_help') }}</p>
+                <x-input-error class="mt-2" :messages="$errors->get('avatar')" />
+            </div>
+        </div>
 
         <div>
             <x-input-label for="name" :value="__('Name')" />
@@ -30,16 +49,16 @@
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
                 <div>
-                    <p class="text-sm mt-2 text-gray-800 dark:text-gray-200">
+                    <p class="text-sm mt-2 text-gray-800">
                         {{ __('Your email address is unverified.') }}
 
-                        <button form="send-verification" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
+                        <button form="send-verification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             {{ __('Click here to re-send the verification email.') }}
                         </button>
                     </p>
 
                     @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 font-medium text-sm text-green-600 dark:text-green-400">
+                        <p class="mt-2 font-medium text-sm text-green-600">
                             {{ __('A new verification link has been sent to your email address.') }}
                         </p>
                     @endif
@@ -56,7 +75,7 @@
                     x-show="show"
                     x-transition
                     x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600 dark:text-gray-400"
+                    class="text-sm text-gray-600"
                 >{{ __('Saved.') }}</p>
             @endif
         </div>

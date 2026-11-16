@@ -20,13 +20,21 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'avatar',
         'password',
         'role_id',
         'phone',
         'employee_id',
-        'base_salary',
+        'birth_place',
+        'birth_date',
+        'gender',
         'position',
+        'position_id',
+        'department_id',
+        'unit_id',
         'supervisor_id',
+        'branch_id',
+        'employment_status',
     ];
 
     /**
@@ -35,6 +43,50 @@ class User extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+    /**
+     * Public URL of the uploaded avatar (also used as face reference).
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->avatar ? \Illuminate\Support\Facades\Storage::url($this->avatar) : null;
+    }
+
+    /**
+     * Employment contract details live in their own table.
+     */
+    public function contract()
+    {
+        return $this->hasOne(UserContract::class);
+    }
+
+    public function getContractStartDateAttribute()
+    {
+        return $this->contract?->start_date;
+    }
+
+    public function getContractEndDateAttribute()
+    {
+        return $this->contract?->end_date;
+    }
+
+    public function getContractDocumentAttribute(): ?string
+    {
+        return $this->contract?->document;
+    }
+
+    /**
+     * Public URL of the uploaded contract / permanent employee document.
+     */
+    public function getContractDocumentUrlAttribute(): ?string
+    {
+        return $this->contract_document ? \Illuminate\Support\Facades\Storage::url($this->contract_document) : null;
+    }
+
+    public function isContract(): bool
+    {
+        return $this->employment_status === 'contract';
     }
 
     /**
@@ -53,20 +105,159 @@ class User extends Authenticatable
         return $this->hasMany(User::class, 'supervisor_id');
     }
 
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function unit()
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+    public function positionMaster()
+    {
+        return $this->belongsTo(Position::class, 'position_id');
+    }
+
+    public function attributeValues()
+    {
+        return $this->hasMany(UserAttributeValue::class);
+    }
+
+    /**
+     * Whether this account still has a superior, i.e. is allowed to take attendance.
+     */
+    public function hasSupervisor(): bool
+    {
+        return ! is_null($this->supervisor_id);
+    }
+
+    /**
+     * Group name for "Tim Saya": supervisors group by unit,
+     * every other manager groups by department.
+     */
+    public function teamGroupName(User $member): string
+    {
+        if ($this->isSupervisor() || ($this->isManager() && $this->unit_id)) {
+            return $member->unit?->name ?? __('ui.no_unit');
+        }
+
+        return $member->department?->name ?? __('ui.no_department');
+    }
+
+    /**
+     * All subordinate ids at any depth below this user.
+     *
+     * @return array<int, int>
+     */
+    public function descendantIds(): array
+    {
+        $all = [];
+        $level = [$this->id];
+
+        while ($level !== []) {
+            $children = static::whereIn('supervisor_id', $level)->pluck('id')->all();
+
+            if ($children === []) {
+                break;
+            }
+
+            $all = array_merge($all, $children);
+            $level = $children;
+        }
+
+        return array_values(array_unique($all));
+    }
+
+    public function isDireksi(): bool
+    {
+        return $this->role?->name === 'direksi';
+    }
+
+    public function isGeneralManager(): bool
+    {
+        return $this->role?->name === 'general_manager';
+    }
+
+    public function isSekretaris(): bool
+    {
+        return $this->role?->name === 'sekretaris';
+    }
+
+    /**
+     * Secretariat department with job level 1, 2 or 3, plus admin/direksi.
+     */
+    public function hasFullEmployeeAccess(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        $level = $this->positionMaster?->level ?? $this->role?->level;
+
+        return $this->department?->name === 'Sekretariat'
+            && in_array((int) $level, [1, 2, 3], true);
+    }
+
+    /**
+     * Secretariat department with job level 1, 2 or 3 may verify leave requests.
+     */
+    public function canVerifyLeaves(): bool
+    {
+        return $this->hasFullEmployeeAccess();
+    }
+
+    /**
+     * Full-access roles plus general managers may see every employee's attendance.
+     */
+    public function canViewAllTeamAttendance(): bool
+    {
+        return $this->hasFullEmployeeAccess() || $this->isGeneralManager() || $this->isDireksi();
+    }
+
+    /**
+     * Full-access roles may verify outside-zone attendance for every employee.
+     */
+    public function canVerifyAllAttendance(): bool
+    {
+        return $this->hasFullEmployeeAccess() || $this->isDireksi();
+    }
+
+    /**
+     * Secretariat department with job level 1, 2 or 3 may fully manage users.
+     */
+    public function canManageUsers(): bool
+    {
+        return $this->hasFullEmployeeAccess();
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role?->name === 'manager';
+    }
+
+    public function isSupervisor(): bool
+    {
+        return $this->role?->name === 'supervisor';
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role?->name === 'staff';
+    }
+
     /**
      * Get all attendances of the user
      */
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
-    }
-
-    /**
-     * Get all overtimes of the user
-     */
-    public function overtimes()
-    {
-        return $this->hasMany(Overtime::class);
     }
 
     /**
@@ -78,35 +269,32 @@ class User extends Authenticatable
     }
 
     /**
-     * Get all payrolls of the user
-     */
-    public function payrolls()
-    {
-        return $this->hasMany(Payroll::class);
-    }
-
-    /**
-     * Check if user is admin
+     * Admin and direksi own the admin area (master data + all data access).
      */
     public function isAdmin(): bool
     {
-        return $this->role?->name === 'admin';
+        return (bool) $this->role?->isAdmin();
     }
 
     /**
-     * Check if user is atasan
+     * Any hierarchical role that opens the team dashboard.
      */
     public function isAtasan(): bool
     {
-        return $this->role?->name === 'atasan';
+        return $this->isGeneralManager() || $this->isSekretaris() || $this->isManager() || $this->isSupervisor();
+    }
+
+    public function isKaryawan(): bool
+    {
+        return $this->isStaff();
     }
 
     /**
-     * Check if user is karyawan
+     * Label of the role for display, translated.
      */
-    public function isKaryawan(): bool
+    public function roleLabel(): string
     {
-        return $this->role?->name === 'karyawan';
+        return __('ui.roles.'.($this->role?->name ?? 'staff'));
     }
 
     /**
@@ -136,6 +324,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'birth_date' => 'date',
             'password' => 'hashed',
         ];
     }

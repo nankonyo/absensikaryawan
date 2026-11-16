@@ -8,6 +8,14 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+Route::get('/locale/{locale}', function (string $locale) {
+    abort_unless(in_array($locale, \App\Http\Middleware\SetLocale::SUPPORTED, true), 404);
+
+    session(['locale' => $locale]);
+
+    return back();
+})->name('locale.switch');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -17,7 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard redirect based on role
     Route::get('/dashboard', function () {
         $user = auth()->user();
-        
+
         if ($user->isAdmin()) {
             return redirect()->route('admin.dashboard');
         } elseif ($user->isAtasan()) {
@@ -28,88 +36,98 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 });
 
-// Admin routes
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
-    
-    // User management
+// User management: admin/direksi and Sekretariat level 1-3.
+Route::middleware(['auth', 'manage-users'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('users', App\Http\Controllers\Admin\UserController::class);
-    
+});
+
+// Admin routes
+Route::middleware(['auth', 'role:direksi,admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+
+    // Master data
+    Route::resource('departments', App\Http\Controllers\Admin\DepartmentController::class)
+        ->except(['create', 'show', 'edit']);
+    Route::resource('units', App\Http\Controllers\Admin\UnitController::class)
+        ->except(['create', 'show', 'edit']);
+    Route::resource('positions', App\Http\Controllers\Admin\PositionController::class)
+        ->except(['create', 'show', 'edit']);
+    Route::resource('user-attributes', App\Http\Controllers\Admin\UserAttributeController::class)
+        ->except(['show']);
+    Route::resource('branches', App\Http\Controllers\Admin\BranchController::class)
+        ->except(['show']);
+    Route::resource('leave-types', App\Http\Controllers\Admin\LeaveTypeController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('attendance-reasons', App\Http\Controllers\Admin\AttendanceReasonController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+
     // Office locations
     Route::resource('office-locations', App\Http\Controllers\Admin\OfficeLocationController::class);
-    
+
     // Attendance management
     Route::get('/attendances', [App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('attendances.index');
     Route::get('/attendances/{attendance}', [App\Http\Controllers\Admin\AttendanceController::class, 'show'])->name('attendances.show');
-    
-    // Overtime management
-    Route::get('/overtimes', [App\Http\Controllers\Admin\OvertimeController::class, 'index'])->name('overtimes.index');
-    Route::get('/overtimes/{overtime}', [App\Http\Controllers\Admin\OvertimeController::class, 'show'])->name('overtimes.show');
-    Route::post('/overtimes/{overtime}/approve', [App\Http\Controllers\Admin\OvertimeController::class, 'approve'])->name('overtimes.approve');
-    Route::post('/overtimes/{overtime}/reject', [App\Http\Controllers\Admin\OvertimeController::class, 'reject'])->name('overtimes.reject');
-    
+
+    // Team attendance: admin and direksi see every employee.
+    Route::get('/team-attendance', [App\Http\Controllers\Atasan\TeamAttendanceController::class, 'index'])->name('team-attendance.index');
+    Route::get('/team-attendance/{user}', [App\Http\Controllers\Atasan\TeamAttendanceController::class, 'show'])->name('team-attendance.show');
+
+    // Outside-zone attendance verification.
+    Route::get('/attendance-verifications', [App\Http\Controllers\AttendanceVerificationController::class, 'index'])->name('attendance-verifications.index');
+    Route::post('/attendance-verifications/{attendance}/approve', [App\Http\Controllers\AttendanceVerificationController::class, 'approve'])->name('attendance-verifications.approve');
+    Route::post('/attendance-verifications/{attendance}/reject', [App\Http\Controllers\AttendanceVerificationController::class, 'reject'])->name('attendance-verifications.reject');
+
     // Leave management
     Route::get('/leaves', [App\Http\Controllers\Admin\LeaveController::class, 'index'])->name('leaves.index');
     Route::get('/leaves/{leave}', [App\Http\Controllers\Admin\LeaveController::class, 'show'])->name('leaves.show');
     Route::post('/leaves/{leave}/approve', [App\Http\Controllers\Admin\LeaveController::class, 'approve'])->name('leaves.approve');
     Route::post('/leaves/{leave}/reject', [App\Http\Controllers\Admin\LeaveController::class, 'reject'])->name('leaves.reject');
-    
-    // Payroll
-    Route::get('/payrolls', [App\Http\Controllers\Admin\PayrollController::class, 'index'])->name('payrolls.index');
-    Route::post('/payrolls/generate', [App\Http\Controllers\Admin\PayrollController::class, 'generate'])->name('payrolls.generate');
-    Route::get('/payrolls/{payroll}', [App\Http\Controllers\Admin\PayrollController::class, 'show'])->name('payrolls.show');
-    Route::get('/payrolls/{payroll}/download', [App\Http\Controllers\Admin\PayrollController::class, 'download'])->name('payrolls.download');
-    
+
     // Reports
     Route::get('/reports', [App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
     Route::post('/reports/attendance', [App\Http\Controllers\Admin\ReportController::class, 'attendance'])->name('reports.attendance');
-    Route::post('/reports/overtime', [App\Http\Controllers\Admin\ReportController::class, 'overtime'])->name('reports.overtime');
-    Route::post('/reports/leave', [App\Http\Controllers\Admin\ReportController::class, 'leave'])->name('reports.leave');
-    
+
     // Settings
     Route::get('/settings', [App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
-    
+
     // Audit logs
     Route::get('/audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
-    
-    // QR Code
-    Route::get('/qr-code', [App\Http\Controllers\Admin\QrCodeController::class, 'index'])->name('qr-code.index');
-    Route::post('/qr-code/generate', [App\Http\Controllers\Admin\QrCodeController::class, 'generate'])->name('qr-code.generate');
+    Route::get('/audit-logs/{auditLog}', [App\Http\Controllers\Admin\AuditLogController::class, 'show'])->name('audit-logs.show');
 });
 
 // Atasan routes
-Route::middleware(['auth', 'role:atasan'])->prefix('atasan')->name('atasan.')->group(function () {
+Route::middleware(['auth', 'role:general_manager,sekretaris,manager,supervisor'])->prefix('atasan')->name('atasan.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Atasan\DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Team attendance
     Route::get('/team-attendance', [App\Http\Controllers\Atasan\TeamAttendanceController::class, 'index'])->name('team-attendance.index');
     Route::get('/team-attendance/{user}', [App\Http\Controllers\Atasan\TeamAttendanceController::class, 'show'])->name('team-attendance.show');
-    
-    // Approvals
-    Route::get('/approvals', [App\Http\Controllers\Atasan\ApprovalController::class, 'index'])->name('approvals.index');
-    
-    // Overtime approvals
-    Route::get('/overtimes', [App\Http\Controllers\Atasan\OvertimeController::class, 'index'])->name('overtimes.index');
-    Route::get('/overtimes/{overtime}', [App\Http\Controllers\Atasan\OvertimeController::class, 'show'])->name('overtimes.show');
-    Route::post('/overtimes/{overtime}/approve', [App\Http\Controllers\Atasan\OvertimeController::class, 'approve'])->name('overtimes.approve');
-    Route::post('/overtimes/{overtime}/reject', [App\Http\Controllers\Atasan\OvertimeController::class, 'reject'])->name('overtimes.reject');
-    
+
+    // Outside-zone attendance verification.
+    Route::get('/attendance-verifications', [App\Http\Controllers\AttendanceVerificationController::class, 'index'])->name('attendance-verifications.index');
+    Route::post('/attendance-verifications/{attendance}/approve', [App\Http\Controllers\AttendanceVerificationController::class, 'approve'])->name('attendance-verifications.approve');
+    Route::post('/attendance-verifications/{attendance}/reject', [App\Http\Controllers\AttendanceVerificationController::class, 'reject'])->name('attendance-verifications.reject');
+
     // Leave approvals
-    Route::get('/leaves', [App\Http\Controllers\Atasan\LeaveController::class, 'index'])->name('leaves.index');
-    Route::get('/leaves/{leave}', [App\Http\Controllers\Atasan\LeaveController::class, 'show'])->name('leaves.show');
-    Route::post('/leaves/{leave}/approve', [App\Http\Controllers\Atasan\LeaveController::class, 'approve'])->name('leaves.approve');
-    Route::post('/leaves/{leave}/reject', [App\Http\Controllers\Atasan\LeaveController::class, 'reject'])->name('leaves.reject');
-    
-    // Reports
-    Route::get('/reports', [App\Http\Controllers\Atasan\ReportController::class, 'index'])->name('reports.index');
-    Route::post('/reports/team-attendance', [App\Http\Controllers\Atasan\ReportController::class, 'teamAttendance'])->name('reports.team-attendance');
+    Route::get('/approvals', [App\Http\Controllers\Atasan\ApprovalController::class, 'index'])->name('approvals.index');
+    Route::get('/approvals/{leave}', [App\Http\Controllers\Atasan\ApprovalController::class, 'show'])->name('approvals.show');
+    Route::post('/approvals/{leave}/approve', [App\Http\Controllers\Atasan\ApprovalController::class, 'approve'])->name('approvals.approve');
+    Route::post('/approvals/{leave}/reject', [App\Http\Controllers\Atasan\ApprovalController::class, 'reject'])->name('approvals.reject');
 });
 
-// Karyawan routes
-Route::middleware(['auth', 'role:karyawan'])->prefix('karyawan')->name('karyawan.')->group(function () {
+// Leave verification: Sekretariat department, job level 2 or 3
+Route::middleware(['auth', 'leave-verifier'])->prefix('verifikasi')->name('verifikasi.')->group(function () {
+    Route::get('/leaves', [App\Http\Controllers\Verifikasi\LeaveController::class, 'index'])->name('leaves.index');
+    Route::get('/leaves/{leave}', [App\Http\Controllers\Verifikasi\LeaveController::class, 'show'])->name('leaves.show');
+    Route::post('/leaves/{leave}/approve', [App\Http\Controllers\Verifikasi\LeaveController::class, 'approve'])->name('leaves.approve');
+    Route::post('/leaves/{leave}/reject', [App\Http\Controllers\Verifikasi\LeaveController::class, 'reject'])->name('leaves.reject');
+});
+
+// Attendance & leave: every role that still has a superior. Direksi has none.
+Route::middleware(['auth', 'role:general_manager,sekretaris,manager,supervisor,staff'])->prefix('karyawan')->name('karyawan.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Karyawan\DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Attendance
     Route::get('/attendance', [App\Http\Controllers\Karyawan\AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('/attendance/check-in', [App\Http\Controllers\Karyawan\AttendanceController::class, 'checkInForm'])->name('attendance.check-in');
@@ -117,17 +135,11 @@ Route::middleware(['auth', 'role:karyawan'])->prefix('karyawan')->name('karyawan
     Route::get('/attendance/check-out', [App\Http\Controllers\Karyawan\AttendanceController::class, 'checkOutForm'])->name('attendance.check-out');
     Route::post('/attendance/check-out', [App\Http\Controllers\Karyawan\AttendanceController::class, 'checkOut'])->name('attendance.check-out.submit');
     Route::get('/attendance/history', [App\Http\Controllers\Karyawan\AttendanceController::class, 'history'])->name('attendance.history');
-    
-    // Overtime
-    Route::resource('overtimes', App\Http\Controllers\Karyawan\OvertimeController::class);
-    
+    Route::get('/attendance/history/{attendance}', [App\Http\Controllers\Karyawan\AttendanceController::class, 'show'])->name('attendance.show');
+
     // Leave
-    Route::resource('leaves', App\Http\Controllers\Karyawan\LeaveController::class);
-    
-    // Payroll
-    Route::get('/payrolls', [App\Http\Controllers\Karyawan\PayrollController::class, 'index'])->name('payrolls.index');
-    Route::get('/payrolls/{payroll}', [App\Http\Controllers\Karyawan\PayrollController::class, 'show'])->name('payrolls.show');
-    Route::get('/payrolls/{payroll}/download', [App\Http\Controllers\Karyawan\PayrollController::class, 'download'])->name('payrolls.download');
+    Route::resource('leaves', App\Http\Controllers\Karyawan\LeaveController::class)
+        ->parameters(['leaves' => 'leave']);
 });
 
 require __DIR__.'/auth.php';

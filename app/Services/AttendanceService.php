@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Attendance;
+use App\Models\AttendanceReason;
 use App\Models\User;
 use App\Models\Setting;
 use Carbon\Carbon;
@@ -12,7 +13,6 @@ class AttendanceService
 {
     public function __construct(
         protected GpsValidationService $gpsService,
-        protected QrCodeService $qrService,
         protected FaceRecognitionService $faceService
     ) {}
 
@@ -29,7 +29,7 @@ class AttendanceService
         if ($existing && $existing->check_in) {
             return [
                 'success' => false,
-                'message' => 'You have already checked in today',
+                'message' => __('ui.already_checked_in'),
             ];
         }
 
@@ -39,42 +39,43 @@ class AttendanceService
             $data['longitude']
         );
 
-        if (!$gpsValidation['valid']) {
-            return [
-                'success' => false,
-                'message' => $gpsValidation['message'],
-                'distance' => $gpsValidation['distance'],
-            ];
-        }
+        $verification = $this->resolveVerification($gpsValidation, $data, $existing);
 
-        // Validate QR Code
-        if (!$this->qrService->validateToken($data['qr_token'])) {
+        if (isset($verification['error'])) {
             return [
                 'success' => false,
-                'message' => 'Invalid or expired QR code',
+                'message' => $verification['error'],
+                'distance' => $verification['distance'] ?? $gpsValidation['distance'],
             ];
         }
 
         // Store photo from base64 data
         $photoPath = null;
         $faceScore = null;
+
+        // Validate Face Recognition (if enabled) using the score computed in the browser
+        if ($this->faceService->isEnabled()) {
+            if (!$user->avatar) {
+                return [
+                    'success' => false,
+                    'message' => __('ui.avatar_not_uploaded'),
+                ];
+            }
+
+            $faceScore = isset($data['face_score']) ? (float) $data['face_score'] : null;
+            $threshold = $this->faceService->getThreshold();
+
+            if ($faceScore === null || $faceScore < $threshold) {
+                return [
+                    'success' => false,
+                    'message' => __('ui.face_mismatch', ['score' => $faceScore ?? 0, 'threshold' => $threshold]),
+                    'score' => $faceScore,
+                ];
+            }
+        }
+
         if (isset($data['photo_data'])) {
             $photoPath = $this->storePhotoFromBase64($data['photo_data'], 'check_in', $user->id);
-            
-            // Validate Face Recognition (if enabled)
-            if ($this->faceService->isEnabled()) {
-                $faceResult = $this->faceService->verify($photoPath, $user->id);
-                
-                if (!$faceResult['verified']) {
-                    return [
-                        'success' => false,
-                        'message' => 'Face verification failed',
-                        'score' => $faceResult['score'],
-                    ];
-                }
-                
-                $faceScore = $faceResult['score'];
-            }
         }
 
         // Calculate late duration
@@ -95,9 +96,10 @@ class AttendanceService
                 'check_in_photo' => $photoPath ?? null,
                 'check_in_face_score' => $faceScore,
                 'check_in_address' => $data['address'] ?? null,
-                'qr_token' => $data['qr_token'],
                 'late_duration' => $lateDuration,
-                'status' => 'valid',
+                'status' => $verification['status'],
+                'attendance_reason_id' => $verification['reason_id'],
+                'notes' => $verification['notes'] ?? null,
             ]
         );
 
@@ -106,7 +108,9 @@ class AttendanceService
 
         return [
             'success' => true,
-            'message' => 'Check-in successful',
+            'message' => $verification['status'] === 'pending'
+                ? __('ui.check_in_pending')
+                : __('ui.check_in_success'),
             'attendance' => $attendance,
             'late_duration' => $lateDuration,
         ];
@@ -121,17 +125,10 @@ class AttendanceService
             ->whereDate('date', Carbon::today())
             ->first();
 
-        if (!$attendance || !$attendance->check_in) {
+        if ($attendance && $attendance->check_out) {
             return [
                 'success' => false,
-                'message' => 'You have not checked in today',
-            ];
-        }
-
-        if ($attendance->check_out) {
-            return [
-                'success' => false,
-                'message' => 'You have already checked out today',
+                'message' => __('ui.already_checked_out'),
             ];
         }
 
@@ -140,29 +137,55 @@ class AttendanceService
             $data['latitude'],
             $data['longitude']
         );
+        $verification = $this->resolveVerification($gpsValidation, $data, $attendance);
+
+        if (isset($verification['error'])) {
+            return [
+                'success' => false,
+                'message' => $verification['error'],
+                'distance' => $verification['distance'] ?? $gpsValidation['distance'],
+            ];
+        }
 
         // Store photo from base64 data
         $photoPath = null;
         $faceScore = null;
+
+        // Validate Face Recognition (if enabled) using the score computed in the browser
+        if ($this->faceService->isEnabled()) {
+            if (!$user->avatar) {
+                return [
+                    'success' => false,
+                    'message' => __('ui.avatar_not_uploaded'),
+                ];
+            }
+
+            $faceScore = isset($data['face_score']) ? (float) $data['face_score'] : null;
+            $threshold = $this->faceService->getThreshold();
+
+            if ($faceScore === null || $faceScore < $threshold) {
+                return [
+                    'success' => false,
+                    'message' => __('ui.face_mismatch', ['score' => $faceScore ?? 0, 'threshold' => $threshold]),
+                    'score' => $faceScore,
+                ];
+            }
+        }
+
         if (isset($data['photo_data'])) {
             $photoPath = $this->storePhotoFromBase64($data['photo_data'], 'check_out', $user->id);
-            
-            // Validate Face Recognition (if enabled)
-            if ($this->faceService->isEnabled()) {
-                $faceResult = $this->faceService->verify($photoPath, $user->id);
-                $faceScore = $faceResult['score'];
-            }
         }
 
         // Calculate work duration and early leave
         $checkOutTime = Carbon::now();
         $workEndTime = Setting::get('work_end_time', '17:00');
-        $workDuration = $this->calculateWorkDuration($attendance->check_in, $checkOutTime);
+        $workDuration = $attendance && $attendance->check_in
+            ? $this->calculateWorkDuration($attendance->check_in, $checkOutTime)
+            : null;
         $earlyLeaveDuration = $this->calculateEarlyLeaveDuration($checkOutTime, $workEndTime);
 
-        // Update attendance
-        $oldValues = $attendance->toArray();
-        $attendance->update([
+        // Update or create attendance (check-out is allowed without check-in)
+        $values = [
             'check_out' => $checkOutTime->format('H:i:s'),
             'check_out_latitude' => $data['latitude'],
             'check_out_longitude' => $data['longitude'],
@@ -171,16 +194,80 @@ class AttendanceService
             'check_out_address' => $data['address'] ?? null,
             'work_duration' => $workDuration,
             'early_leave_duration' => $earlyLeaveDuration,
-        ]);
+            'status' => $verification['status'],
+            'attendance_reason_id' => $verification['reason_id'],
+            'notes' => $verification['notes'] ?? $attendance?->notes,
+        ];
+
+        if ($attendance) {
+            $oldValues = $attendance->toArray();
+            $attendance->update($values);
+        } else {
+            $oldValues = null;
+            $attendance = Attendance::create($values + [
+                'user_id' => $user->id,
+                'date' => Carbon::today(),
+            ]);
+        }
 
         // Log audit
         \App\Models\AuditLog::log('check_out', 'Attendance', $attendance->id, $oldValues, $attendance->toArray());
 
         return [
             'success' => true,
-            'message' => 'Check-out successful',
+            'message' => $verification['status'] === 'pending'
+                ? __('ui.check_out_pending')
+                : __('ui.check_out_success'),
             'attendance' => $attendance,
             'work_duration' => $workDuration,
+        ];
+    }
+
+    /**
+     * Decide whether an attendance is valid or must wait for verification.
+     */
+    protected function resolveVerification(array $gpsValidation, array $data, ?Attendance $existing = null): array
+    {
+        if ($gpsValidation['valid']) {
+            $status = match ($existing?->status) {
+                'pending' => 'pending',
+                'invalid' => 'invalid',
+                default => 'valid',
+            };
+
+            return [
+                'status' => $status,
+                'reason_id' => $status === 'pending' ? $existing?->attendance_reason_id : null,
+            ];
+        }
+
+        // No active office means distance cannot be evaluated; keep the old hard error.
+        if (($gpsValidation['distance'] ?? null) === null) {
+            return ['error' => $gpsValidation['message'], 'distance' => null];
+        }
+
+        $reason = null;
+        $reasonId = $data['attendance_reason_id'] ?? null;
+
+        if ($reasonId) {
+            $reason = AttendanceReason::whereKey($reasonId)->where('is_active', true)->first();
+        }
+
+        if (! $reason && $existing?->attendance_reason_id) {
+            $reason = $existing->attendanceReason;
+        }
+
+        if (! $reason) {
+            return [
+                'error' => __('ui.attendance_reason_required'),
+                'distance' => $gpsValidation['distance'],
+            ];
+        }
+
+        return [
+            'status' => 'pending',
+            'reason_id' => $reason->id,
+            'notes' => $data['notes'] ?? null,
         ];
     }
 
@@ -246,7 +333,7 @@ class AttendanceService
     /**
      * Get user attendance history
      */
-    public function getUserAttendanceHistory(User $user, ?string $month = null)
+    public function getUserAttendanceHistory(User $user, ?string $month = null, int $perPage = 10, ?string $status = null)
     {
         $query = Attendance::where('user_id', $user->id);
 
@@ -256,6 +343,10 @@ class AttendanceService
                   ->whereMonth('date', $date->month);
         }
 
-        return $query->orderBy('date', 'desc')->get();
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        return $query->orderBy('date', 'desc')->paginate($perPage)->withQueryString();
     }
 }

@@ -9,8 +9,19 @@ class Role extends Model
 {
     protected $fillable = [
         'name',
+        'level',
         'display_name',
         'description',
+    ];
+
+    public const LEVELS = [
+        'admin' => 0,
+        'direksi' => 1,
+        'general_manager' => 2,
+        'sekretaris' => 2,
+        'manager' => 3,
+        'supervisor' => 4,
+        'staff' => 5,
     ];
 
     /**
@@ -21,27 +32,23 @@ class Role extends Model
         return $this->hasMany(User::class);
     }
 
-    /**
-     * Check if this is admin role
-     */
     public function isAdmin(): bool
     {
-        return $this->name === 'admin';
+        return in_array($this->name, ['admin', 'direksi'], true);
     }
 
-    /**
-     * Check if this is atasan role
-     */
     public function isAtasan(): bool
     {
-        return $this->name === 'atasan';
+        return in_array($this->name, ['general_manager', 'sekretaris', 'manager', 'supervisor'], true);
     }
 
-    /**
-     * Check if this is karyawan role
-     */
     public function isKaryawan(): bool
     {
-        return $this->name === 'karyawan';
+        return $this->name === 'staff';
+    }
+
+    public function label(): string
+    {
+        return __('ui.roles.'.$this->name);
     }
 }

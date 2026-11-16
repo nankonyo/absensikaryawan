@@ -2,7 +2,7 @@
 
 Panduan instalasi lengkap untuk Sistem Absensi Karyawan Modern.
 
-## 📋 Prerequisites
+##  Prerequisites
 
 Pastikan sistem Anda sudah memiliki:
 
@@ -16,14 +16,14 @@ Pastikan sistem Anda sudah memiliki:
   - PDO
   - Tokenizer
   - XML
-  - GD (untuk QR Code & image processing)
-  
+  - GD (untuk image processing)
+
 - **Composer** (latest version)
 - **Node.js >= 18** & NPM
 - **MySQL >= 8.0** atau **MariaDB >= 10.3**
 - **XAMPP / MAMP / Laragon** (untuk local development)
 
-## 🚀 Step-by-Step Installation
+##  Step-by-Step Installation
 
 ### 1. Prepare Environment
 
@@ -148,9 +148,7 @@ INFO  Running migrations.
 2025_11_21_083753_create_roles_table ............... DONE
 2025_11_21_083823_add_role_id_to_users_table ....... DONE
 2025_11_21_083824_create_office_locations_table .... DONE
-2025_11_21_083825_create_qr_codes_table ............ DONE
 2025_11_21_083826_create_attendances_table ......... DONE
-2025_11_21_083826_create_overtimes_table ........... DONE
 2025_11_21_083832_create_leaves_table .............. DONE
 2025_11_21_083833_create_payrolls_table ............ DONE
 2025_11_21_083834_create_settings_table ............ DONE
@@ -204,7 +202,7 @@ Atau akses via MAMP/XAMPP:
 - MAMP: `http://localhost:8888/absensikaryawan/public`
 - XAMPP: `http://localhost/absensikaryawan/public`
 
-## 👤 Default Login Credentials
+##  Default Login Credentials
 
 | Role | Email | Password | Employee ID |
 |------|-------|----------|-------------|
@@ -213,7 +211,7 @@ Atau akses via MAMP/XAMPP:
 | Karyawan | karyawan@example.com | password | EMP003 |
 | Karyawan 2 | karyawan2@example.com | password | EMP004 |
 
-## 🔧 Post-Installation Configuration
+##  Post-Installation Configuration
 
 ### 1. Update Office Location
 
@@ -237,8 +235,8 @@ Update pengaturan sesuai kebutuhan:
 - Work start time (default: 08:00)
 - Work end time (default: 17:00)
 - Late tolerance (default: 15 minutes)
-- Face recognition threshold (default: 70%)
-- Payroll settings (penalties & bonuses)
+- Timezone (default: Asia/Jakarta)
+- Face recognition threshold (default: 80%)
 
 ### 3. Update Company Information
 
@@ -247,18 +245,7 @@ Edit di Settings:
 - Company address
 - Upload company logo (`public/images/logo.png`)
 
-### 4. Generate Daily QR Code
-
-```bash
-# Generate QR code for today
-php artisan qr:generate-daily
-
-# Or setup cron job untuk auto-generate setiap hari
-# Add to crontab:
-0 0 * * * cd /path/to/project && php artisan qr:generate-daily
-```
-
-## 🎨 Customization
+##  Customization
 
 ### Change Theme Colors
 
@@ -296,7 +283,7 @@ cp /path/to/your/logo.png public/images/logo.png
 # - Salary slip PDF
 ```
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Error: "Access denied for user 'root'@'localhost'"
 
@@ -377,7 +364,7 @@ chown -R www-data:www-data storage bootstrap/cache
 chown -R _www:_www storage bootstrap/cache
 ```
 
-## 📱 Testing Installation
+##  Testing Installation
 
 ### 1. Test Login
 - Navigate to `http://localhost:8000`
@@ -399,7 +386,7 @@ chown -R _www:_www storage bootstrap/cache
 - Navigate ke Reports
 - Test generate PDF/Excel
 
-## 🔄 Update & Maintenance
+##  Update & Maintenance
 
 ### Update Dependencies
 
@@ -443,7 +430,7 @@ mysqldump -u root -p absensikaryawan > backup_$(date +%Y%m%d).sql
 mysql -u root -p absensikaryawan < backup_20251121.sql
 ```
 
-## 🚀 Deployment to Production
+##  Deployment to Production
 
 ### 1. Update .env for Production
 
@@ -492,12 +479,9 @@ Add to crontab:
 ```bash
 # Laravel scheduler
 * * * * * cd /path/to/project && php artisan schedule:run >> /dev/null 2>&1
-
-# Daily QR code generation
-0 0 * * * cd /path/to/project && php artisan qr:generate-daily
 ```
 
-## 📞 Support
+##  Support
 
 Jika mengalami masalah saat instalasi:
 1. Check error logs: `storage/logs/laravel.log`
@@ -506,7 +490,7 @@ Jika mengalami masalah saat instalasi:
 4. Clear all caches
 5. Restart web server & database
 
-## ✅ Installation Checklist
+##  Installation Checklist
 
 - [ ] PHP 8.2+ installed
 - [ ] Composer installed
@@ -526,4 +510,4 @@ Jika mengalami masalah saat instalasi:
 - [ ] Office location updated
 - [ ] System settings configured
 
-Selamat! Sistem Absensi Karyawan sudah siap digunakan! 🎉
+Selamat! Sistem Absensi Karyawan sudah siap digunakan!

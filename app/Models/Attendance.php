@@ -22,8 +22,11 @@ class Attendance extends Model
         'check_out_photo',
         'check_out_face_score',
         'check_out_address',
-        'qr_token',
         'status',
+        'attendance_reason_id',
+        'verified_by',
+        'verified_at',
+        'verification_notes',
         'notes',
         'work_duration',
         'late_duration',
@@ -34,6 +37,7 @@ class Attendance extends Model
         'date' => 'date',
         'check_in' => 'datetime:H:i',
         'check_out' => 'datetime:H:i',
+        'verified_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -41,9 +45,29 @@ class Attendance extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function attendanceReason(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceReason::class);
+    }
+
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
     public function isValid(): bool
     {
         return $this->status === 'valid';
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function statusLabel(): string
+    {
+        return __('ui.statuses.'.($this->status ?: 'pending'));
     }
 
     public function isLate(): bool
@@ -54,5 +78,22 @@ class Attendance extends Model
     public function hasEarlyLeave(): bool
     {
         return $this->early_leave_duration > 0;
+    }
+
+    /**
+     * Human readable tardiness: minutes below an hour, hours + minutes above.
+     */
+    public function lateDurationLabel(): string
+    {
+        $minutes = (int) $this->late_duration;
+
+        if ($minutes <= 60) {
+            return __('ui.late_minutes', ['minutes' => $minutes]);
+        }
+
+        return __('ui.late_hours_minutes', [
+            'hours' => intdiv($minutes, 60),
+            'minutes' => $minutes % 60,
+        ]);
     }
 }

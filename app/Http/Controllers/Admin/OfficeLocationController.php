@@ -35,7 +35,7 @@ class OfficeLocationController extends Controller
 
         return redirect()
             ->route('admin.office-locations.index')
-            ->with('success', 'Office location created successfully');
+            ->with('success', __('ui.office_created'));
     }
 
     public function show(OfficeLocation $officeLocation)
@@ -66,7 +66,7 @@ class OfficeLocationController extends Controller
 
         return redirect()
             ->route('admin.office-locations.index')
-            ->with('success', 'Office location updated successfully');
+            ->with('success', __('ui.office_updated'));
     }
 
     public function destroy(OfficeLocation $officeLocation)
@@ -77,6 +77,6 @@ class OfficeLocationController extends Controller
 
         return redirect()
             ->route('admin.office-locations.index')
-            ->with('success', 'Office location deleted successfully');
+            ->with('success', __('ui.office_deleted'));
     }
 }

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
 use App\Services\AttendanceService;
-use App\Services\QrCodeService;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -12,12 +11,13 @@ use Carbon\Carbon;
 class AttendanceController extends Controller
 {
     public function __construct(
-        protected AttendanceService $attendanceService,
-        protected QrCodeService $qrService
+        protected AttendanceService $attendanceService
     ) {}
 
     public function index()
     {
+        $this->ensureCanAttend();
+
         $user = auth()->user();
         $today = Carbon::today();
 
@@ -26,7 +26,7 @@ class AttendanceController extends Controller
             ->first();
 
         $canCheckIn = !$todayAttendance || !$todayAttendance->check_in;
-        $canCheckOut = $todayAttendance && $todayAttendance->check_in && !$todayAttendance->check_out;
+        $canCheckOut = !$todayAttendance || !$todayAttendance->check_out;
 
         return view('karyawan.attendance.index', compact(
             'todayAttendance',
@@ -37,19 +37,23 @@ class AttendanceController extends Controller
 
     public function checkInForm()
     {
-        $qrCode = $this->qrService->getOrCreateTodayQrCode();
-        
-        return view('karyawan.attendance.check-in', compact('qrCode'));
+        $this->ensureCanAttend();
+
+        return view('karyawan.attendance.check-in');
     }
 
     public function checkIn(Request $request)
     {
+        $this->ensureCanAttend();
+
         $request->validate([
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
-            'qr_token' => 'required|string',
             'photo_data' => 'required|string', // Base64 encoded image from camera
+            'face_score' => 'nullable|numeric|min:0|max:100',
             'address' => 'nullable|string',
+            'attendance_reason_id' => 'nullable|exists:attendance_reasons,id',
+            'notes' => 'nullable|string|max:500',
         ]);
 
         $result = $this->attendanceService->checkIn(auth()->user(), $request->all());
@@ -67,21 +71,17 @@ class AttendanceController extends Controller
 
     public function checkOutForm()
     {
+        $this->ensureCanAttend();
+
         $user = auth()->user();
         $todayAttendance = Attendance::where('user_id', $user->id)
             ->whereDate('date', Carbon::today())
             ->first();
 
-        if (!$todayAttendance || !$todayAttendance->check_in) {
+        if ($todayAttendance && $todayAttendance->check_out) {
             return redirect()
                 ->route('karyawan.attendance.index')
-                ->with('error', 'You have not checked in today');
-        }
-
-        if ($todayAttendance->check_out) {
-            return redirect()
-                ->route('karyawan.attendance.index')
-                ->with('error', 'You have already checked out today');
+                ->with('error', __('ui.already_checked_out'));
         }
 
         return view('karyawan.attendance.check-out', compact('todayAttendance'));
@@ -89,11 +89,16 @@ class AttendanceController extends Controller
 
     public function checkOut(Request $request)
     {
+        $this->ensureCanAttend();
+
         $request->validate([
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'photo_data' => 'required|string', // Base64 encoded image from camera
+            'face_score' => 'nullable|numeric|min:0|max:100',
             'address' => 'nullable|string',
+            'attendance_reason_id' => 'nullable|exists:attendance_reasons,id',
+            'notes' => 'nullable|string|max:500',
         ]);
 
         $result = $this->attendanceService->checkOut(auth()->user(), $request->all());
@@ -111,11 +116,36 @@ class AttendanceController extends Controller
 
     public function history(Request $request)
     {
+        $this->ensureCanAttend();
+
         $user = auth()->user();
         $month = $request->get('month', Carbon::now()->format('Y-m'));
+        $status = $request->query('status');
+        $perPage = in_array($request->integer('per_page'), [5, 10, 15, 25, 50, 100], true)
+            ? $request->integer('per_page')
+            : 10;
 
-        $attendances = $this->attendanceService->getUserAttendanceHistory($user, $month);
+        $attendances = $this->attendanceService->getUserAttendanceHistory($user, $month, $perPage, $status);
 
-        return view('karyawan.attendance.history', compact('attendances', 'month'));
+        return view('karyawan.attendance.history', compact('attendances', 'month', 'status', 'perPage'));
+    }
+
+    public function show(Attendance $attendance)
+    {
+        $this->ensureCanAttend();
+
+        abort_unless($attendance->user_id === auth()->id(), 403);
+
+        $attendance->load('user');
+
+        return view('karyawan.attendance.show', compact('attendance'));
+    }
+
+    /**
+     * Attendance is only available while the user still has a superior.
+     */
+    private function ensureCanAttend(): void
+    {
+        abort_unless(auth()->user()->hasSupervisor(), 403, __('ui.attendance_no_supervisor'));
     }
 }

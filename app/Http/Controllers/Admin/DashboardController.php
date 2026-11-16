@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Attendance;
-use App\Models\Overtime;
 use App\Models\Leave;
-use App\Models\Payroll;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -15,13 +13,12 @@ class DashboardController extends Controller
     public function index()
     {
         $today = Carbon::today();
-        $thisMonth = Carbon::now()->format('Y-m');
 
-        // Total counts
-        $totalUsers = User::where('role_id', '!=', 1)->count(); // Exclude admin
-        $totalKaryawan = User::whereHas('role', function($q) {
-            $q->where('name', 'karyawan');
-        })->count();
+        // Total employees = every user except the system administrator.
+        $employeeQuery = User::whereHas('role', fn ($q) => $q->where('name', '!=', 'admin'));
+        $totalKaryawan = (clone $employeeQuery)->count();
+        $permanentEmployees = (clone $employeeQuery)->where('employment_status', 'permanent')->count();
+        $contractEmployees = (clone $employeeQuery)->where('employment_status', 'contract')->count();
 
         // Today's attendance
         $todayAttendances = Attendance::whereDate('date', $today)->count();
@@ -30,7 +27,6 @@ class DashboardController extends Controller
             ->count();
 
         // Pending approvals
-        $pendingOvertimes = Overtime::where('status', 'pending')->count();
         $pendingLeaves = Leave::where('status', 'pending')->count();
 
         // This month stats
@@ -40,8 +36,6 @@ class DashboardController extends Controller
         $monthlyAttendance = Attendance::whereBetween('date', [$monthStart, $monthEnd])
             ->whereNotNull('check_in')
             ->count();
-
-        $monthlyPayroll = Payroll::where('period', $thisMonth)->sum('total_salary');
 
         // Recent attendances
         $recentAttendances = Attendance::with('user')
@@ -54,21 +48,20 @@ class DashboardController extends Controller
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
             $last7Days[] = [
-                'date' => $date->format('d M'),
+                'date' => $date->format('d/m/Y'),
                 'count' => Attendance::whereDate('date', $date)->whereNotNull('check_in')->count(),
                 'late' => Attendance::whereDate('date', $date)->where('late_duration', '>', 0)->count(),
             ];
         }
 
         return view('admin.dashboard', compact(
-            'totalUsers',
             'totalKaryawan',
+            'permanentEmployees',
+            'contractEmployees',
             'todayAttendances',
             'todayLate',
-            'pendingOvertimes',
             'pendingLeaves',
             'monthlyAttendance',
-            'monthlyPayroll',
             'recentAttendances',
             'last7Days'
         ));

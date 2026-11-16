@@ -12,29 +12,49 @@ class Leave extends Model
         'start_date',
         'end_date',
         'days',
-        'type',
+        'leave_type_id',
         'reason',
         'attachment',
         'status',
         'approved_by',
         'approved_at',
+        'verified_by',
+        'verified_at',
         'notes',
     ];
+
+    protected $with = ['leaveType'];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
         'approved_at' => 'datetime',
+        'verified_at' => 'datetime',
     ];
 
-    public function user()
+    public function leaveType()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(LeaveType::class);
     }
 
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function verifier()
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return $this->leaveType?->name ?? __('ui.empty');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function isPending(): bool
