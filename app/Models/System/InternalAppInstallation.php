@@ -139,6 +139,12 @@ class InternalAppInstallation extends Model
             });
         }
 
+        if (Schema::hasTable('internal_attendance_manual') && ! Schema::hasIndex('internal_attendance_manual', 'iam_user_period_unique')) {
+            Schema::table('internal_attendance_manual', function (Blueprint $t) {
+                $t->unique(['user_id', 'period_start', 'period_end'], 'iam_user_period_unique');
+            });
+        }
+
         if (! Schema::hasTable('internal_notifications')) {
             Schema::create('internal_notifications', function (Blueprint $t) {
                 $t->id();
@@ -340,7 +346,13 @@ class InternalAppInstallation extends Model
                 $t->timestamp('approved_at')->nullable();
                 $t->text('approval_note')->nullable();
                 $t->timestamps();
-                $t->unique(['user_id', 'period_start', 'period_end']);
+                $t->unique(['user_id', 'period_start', 'period_end'], 'iam_user_period_unique');
+            });
+        }
+
+        if (Schema::hasTable('internal_attendance_manual') && ! Schema::hasIndex('internal_attendance_manual', 'iam_user_period_unique')) {
+            Schema::table('internal_attendance_manual', function (Blueprint $t) {
+                $t->unique(['user_id', 'period_start', 'period_end'], 'iam_user_period_unique');
             });
         }
 
