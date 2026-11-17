@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import type { TabsParamList } from './types';
 import { DashboardScreen } from '../screens/DashboardScreen';
@@ -22,6 +23,8 @@ const icon = (name: keyof typeof Ionicons.glyphMap) =>
 
 export const BottomTabs = () => {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 8);
   const isAdmin = Boolean(user?.is_admin);
   const isAtasan = Boolean(user?.is_atasan) && !isAdmin;
   const isStaff = !isAdmin && !isAtasan;
@@ -35,7 +38,12 @@ export const BottomTabs = () => {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.subtle,
-        tabBarStyle: { borderTopColor: colors.border, height: 62, paddingBottom: 8, paddingTop: 6 },
+        tabBarStyle: {
+          borderTopColor: colors.border,
+          height: 58 + bottomPadding,
+          paddingBottom: bottomPadding,
+          paddingTop: 6,
+        },
         tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
       }}
     >

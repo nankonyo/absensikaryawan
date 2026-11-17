@@ -64,6 +64,14 @@ export const TopNav = () => {
           <Text style={styles.smallMeta} numberOfLines={1}>
             {role}
           </Text>
+          {user?.position ? (
+            <>
+              <Text style={styles.smallDot}>•</Text>
+              <Text style={styles.smallMeta} numberOfLines={1}>
+                {user.position}
+              </Text>
+            </>
+          ) : null}
         </View>
       </View>
     </SafeAreaView>

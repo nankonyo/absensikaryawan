@@ -17,6 +17,10 @@ export const ProfileScreen = () => {
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar_url ?? null);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const pickAvatar = async (source: 'camera' | 'gallery') => {
     const permission = source === 'camera'
@@ -83,6 +87,38 @@ export const ProfileScreen = () => {
     }
   };
 
+  const changePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Lengkapi data', 'Semua kolom password wajib diisi.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      Alert.alert('Password terlalu pendek', 'Password baru minimal 8 karakter.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Password tidak sama', 'Konfirmasi password baru tidak cocok.');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await profileApi.updatePassword({
+        current_password: currentPassword,
+        password: newPassword,
+        password_confirmation: confirmPassword,
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      Alert.alert('Berhasil', 'Password berhasil diubah.');
+    } catch (err) {
+      Alert.alert('Gagal mengubah password', apiMessage(err));
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <Screen>
       <Card style={styles.hero}>
@@ -123,6 +159,39 @@ export const ProfileScreen = () => {
         <Field label="Nama" value={name} onChangeText={setName} />
         <Field label="Telepon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
         <Button label={saving ? 'Menyimpan...' : 'Simpan'} onPress={save} disabled={saving} />
+      </Card>
+
+      <SectionTitle title="Ubah Password" />
+      <Card style={{ gap: spacing.md }}>
+        <Field
+          label="Password saat ini"
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          placeholder="Password saat ini"
+          secureTextEntry
+          autoCapitalize="none"
+        />
+        <Field
+          label="Password baru"
+          value={newPassword}
+          onChangeText={setNewPassword}
+          placeholder="Minimal 8 karakter"
+          secureTextEntry
+          autoCapitalize="none"
+        />
+        <Field
+          label="Konfirmasi password baru"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          placeholder="Ulangi password baru"
+          secureTextEntry
+          autoCapitalize="none"
+        />
+        <Button
+          label={changingPassword ? 'Menyimpan...' : 'Ubah Password'}
+          onPress={changePassword}
+          disabled={changingPassword}
+        />
       </Card>
 
       <Button

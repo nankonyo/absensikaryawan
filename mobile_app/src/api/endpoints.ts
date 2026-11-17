@@ -124,6 +124,8 @@ export const profileApi = {
     payload instanceof FormData
       ? api.post<{ user: User }>('/profile', payload)
       : api.put<{ user: User }>('/profile', payload),
+  updatePassword: (payload: { current_password: string; password: string; password_confirmation: string }) =>
+    api.post<{ message: string }>('/profile/password', payload),
 };
 
 export const adminApi = {
