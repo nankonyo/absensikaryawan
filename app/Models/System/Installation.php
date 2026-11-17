@@ -311,6 +311,18 @@ class Installation extends Model
             ]);
         }
 
+        if (! Schema::hasTable('api_tokens')) {
+            Schema::create('api_tokens', function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->string('name', 100)->default('mobile');
+                $table->string('token', 64)->unique();
+                $table->timestamp('last_used_at')->nullable();
+                $table->timestamp('expires_at')->nullable();
+                $table->timestamps();
+            });
+        }
+
         InternalAppInstallation::ensureForRst();
     }
 }

@@ -38,7 +38,11 @@ api.interceptors.response.use(
 
 export const apiMessage = (error: unknown, fallback = 'Terjadi kesalahan.'): string => {
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as {
+    if (!error.response) {
+      return 'Tidak dapat terhubung ke server API. Periksa koneksi atau EXPO_PUBLIC_API_URL.';
+    }
+
+    const data = error.response.data as {
       message?: string;
       errors?: Record<string, string[]>;
     };
