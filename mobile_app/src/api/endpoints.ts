@@ -127,10 +127,12 @@ export const adminApi = {
   schema: (resource: string) => api.get<{ title: string; read_only: boolean; fields: any[] }>(`/admin/resources/${resource}/schema`),
   list: (resource: string, params?: { q?: string; page?: number; per_page?: number }) =>
     api.get<{ data: { data: any[]; current_page: number; last_page: number } }>(`/admin/resources/${resource}`, { params }),
-  create: (resource: string, payload: Record<string, unknown>) =>
+  create: (resource: string, payload: Record<string, unknown> | FormData) =>
     api.post(`/admin/resources/${resource}`, payload),
-  update: (resource: string, id: number, payload: Record<string, unknown>) =>
-    api.put(`/admin/resources/${resource}/${id}`, payload),
+  update: (resource: string, id: number, payload: Record<string, unknown> | FormData) =>
+    payload instanceof FormData
+      ? api.post(`/admin/resources/${resource}/${id}`, payload)
+      : api.put(`/admin/resources/${resource}/${id}`, payload),
   remove: (resource: string, id: number) => api.delete(`/admin/resources/${resource}/${id}`),
   verifyAttendance: (id: number, status: 'valid' | 'invalid' | 'pending', notes?: string) =>
     api.post(`/admin/resources/attendances/${id}/verify`, { status, notes }),

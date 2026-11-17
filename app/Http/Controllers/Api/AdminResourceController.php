@@ -20,6 +20,7 @@ use App\Models\Attendance;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\UserAttribute;
+use App\Models\UserAttributeValue;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
@@ -80,6 +81,14 @@ class AdminResourceController extends Controller
                 $data['value'] = '********';
             }
 
+            if ($resource === 'users') {
+                $data['avatar_url'] = $model->avatar_url;
+                $data['contract_start_date'] = $model->contract?->start_date?->format('Y-m-d');
+                $data['contract_end_date'] = $model->contract?->end_date?->format('Y-m-d');
+                $data['contract_document_url'] = $model->contract_document_url;
+                $data['attribute_values'] = $model->attributeValues->pluck('value', 'user_attribute_id')->all();
+            }
+
             return array_merge($data, [
                 'title' => (string) ($data[$config['title_field']] ?? '-'),
                 'subtitle' => (string) ($data[$config['subtitle_field']] ?? ''),
@@ -94,9 +103,15 @@ class AdminResourceController extends Controller
         $config = $this->writableConfig($resource);
         $modelClass = $config['model'];
         $data = $this->validated($request, $config, null);
-        $data = $this->transform($data, $config, $request, true, $resource);
+        $data = $this->transform($data, $config, $request, true, $resource, null);
 
+        unset($data['contract_start_date'], $data['contract_end_date'], $data['contract_document']);
         $model = $modelClass::create($data);
+
+        if ($resource === 'users') {
+            $this->saveContract($model, $request);
+            $this->syncAttributes($model, $request);
+        }
 
         return response()->json(['status' => true, 'message' => 'Data berhasil ditambahkan.', 'id' => $model->id]);
     }
@@ -108,13 +123,19 @@ class AdminResourceController extends Controller
         $model = $modelClass::findOrFail($id);
 
         $data = $this->validated($request, $config, $model);
-        $data = $this->transform($data, $config, $request, false, $resource);
+        $data = $this->transform($data, $config, $request, false, $resource, $model);
 
         if (empty($data['password'])) {
             unset($data['password']);
         }
 
+        unset($data['contract_start_date'], $data['contract_end_date'], $data['contract_document']);
         $model->update($data);
+
+        if ($resource === 'users') {
+            $this->saveContract($model, $request);
+            $this->syncAttributes($model, $request);
+        }
 
         return response()->json(['status' => true, 'message' => 'Data berhasil diperbarui.']);
     }
@@ -148,16 +169,28 @@ class AdminResourceController extends Controller
                     ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true, 'unique' => true],
                     ['name' => 'employee_id', 'label' => 'NIP', 'type' => 'text', 'required' => true, 'unique' => true],
                     ['name' => 'password', 'label' => 'Password', 'type' => 'password', 'create_only' => true],
+                    ['name' => 'avatar', 'label' => 'Avatar (foto wajah)', 'type' => 'file', 'accept' => 'image', 'mimes' => 'jpg,jpeg,png,webp', 'max' => 4096, 'path' => 'avatars'],
+                    ['name' => 'phone', 'label' => 'Telepon', 'type' => 'text'],
+                    ['name' => 'birth_place', 'label' => 'Tempat Lahir', 'type' => 'text'],
+                    ['name' => 'birth_date', 'label' => 'Tanggal Lahir (Y-m-d)', 'type' => 'date'],
+                    ['name' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'options' => [
+                        ['value' => 'male', 'label' => 'Laki-laki'],
+                        ['value' => 'female', 'label' => 'Perempuan'],
+                    ]],
                     ['name' => 'role_id', 'label' => 'Role', 'type' => 'select', 'required' => true, 'options' => $this->roleOptions()],
                     ['name' => 'department_id', 'label' => 'Departemen', 'type' => 'select', 'options' => $this->departmentOptions()],
                     ['name' => 'unit_id', 'label' => 'Unit', 'type' => 'select', 'options' => $this->unitOptions()],
                     ['name' => 'position_id', 'label' => 'Jabatan', 'type' => 'select', 'options' => $this->positionOptions()],
                     ['name' => 'branch_id', 'label' => 'Cabang', 'type' => 'select', 'options' => $this->branchOptions()],
-                    ['name' => 'phone', 'label' => 'Telepon', 'type' => 'text'],
+                    ['name' => 'supervisor_id', 'label' => 'Atasan', 'type' => 'select', 'options' => $this->supervisorOptions()],
                     ['name' => 'employment_status', 'label' => 'Status Kerja', 'type' => 'select', 'options' => [
                         ['value' => 'permanent', 'label' => 'Tetap'],
                         ['value' => 'contract', 'label' => 'Kontrak'],
                     ]],
+                    ['name' => 'contract_start_date', 'label' => 'Kontrak Mulai (Y-m-d)', 'type' => 'date'],
+                    ['name' => 'contract_end_date', 'label' => 'Kontrak Selesai (Y-m-d)', 'type' => 'date'],
+                    ['name' => 'contract_document', 'label' => 'Dokumen Kontrak', 'type' => 'file', 'accept' => 'document', 'mimes' => 'pdf,jpg,jpeg,png', 'max' => 5120, 'path' => 'contracts'],
+                    ['name' => 'attributes', 'label' => 'Atribut Tambahan', 'type' => 'attributes', 'options' => $this->userAttributeOptions()],
                 ],
             ],
             'departments' => [
@@ -426,8 +459,14 @@ class AdminResourceController extends Controller
                 'email' => 'email',
                 'number' => 'numeric',
                 'switch' => 'boolean',
+                'date' => 'date',
+                'file' => 'file',
                 default => 'string',
             };
+            if ($field['type'] === 'file') {
+                if (! empty($field['mimes'])) $rule[] = 'mimes:'.$field['mimes'];
+                if (! empty($field['max'])) $rule[] = 'max:'.$field['max'];
+            }
             if (($field['unique'] ?? false) && ! empty($config['model'])) {
                 $table = (new $config['model'])->getTable();
                 $rule[] = Rule::unique($table, $name)->ignore($model?->id);
@@ -435,10 +474,15 @@ class AdminResourceController extends Controller
             $rules[$name] = $rule;
         }
 
+        if (($config['model'] ?? null) === User::class) {
+            $rules['attributes'] = ['nullable', 'array'];
+            $rules['attributes.*'] = ['nullable', 'string', 'max:1000'];
+        }
+
         return $request->validate($rules);
     }
 
-    private function transform(array $data, array $config, Request $request, bool $creating, string $resource): array
+    private function transform(array $data, array $config, Request $request, bool $creating, string $resource, $model = null): array
     {
         foreach ($config['fields'] as $field) {
             $name = $field['name'];
@@ -455,6 +499,20 @@ class AdminResourceController extends Controller
             if ($name === 'options' && isset($data[$name]) && is_string($data[$name])) {
                 $data[$name] = array_values(array_filter(array_map('trim', explode(',', $data[$name]))));
             }
+            if ($field['type'] === 'file') {
+                if ($request->hasFile($name)) {
+                    if ($model && $model->{$name}) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($model->{$name});
+                    }
+                    $data[$name] = $request->file($name)->store($field['path'] ?? 'uploads', 'public');
+                } else {
+                    unset($data[$name]);
+                }
+            }
+            if ($name === 'attributes') {
+                unset($data[$name]);
+                continue;
+            }
             if ($resource === 'settings' && $name === 'value' && ($data[$name] ?? null) === '********') {
                 unset($data[$name]);
             }
@@ -470,6 +528,61 @@ class AdminResourceController extends Controller
         return $data;
     }
 
+    private function syncAttributes($user, Request $request): void
+    {
+        if (! method_exists($user, 'attributeValues')) {
+            return;
+        }
+
+        foreach ((array) $request->input('attributes', []) as $attributeId => $value) {
+            if ($value === null || $value === '') {
+                UserAttributeValue::where('user_id', $user->id)->where('user_attribute_id', $attributeId)->delete();
+                continue;
+            }
+
+            UserAttributeValue::updateOrCreate(
+                ['user_id' => $user->id, 'user_attribute_id' => $attributeId],
+                ['value' => (string) $value]
+            );
+        }
+    }
+
+    private function userAttributeOptions(): array
+    {
+        return UserAttribute::where('is_active', true)->orderBy('sort_order')->orderBy('label')
+            ->get(['id', 'label', 'type', 'options'])->map(fn ($a) => [
+                'id' => $a->id,
+                'label' => $a->label,
+                'type' => $a->type,
+                'options' => $a->options ?? [],
+            ])->all();
+    }
+
+    private function saveContract($user, Request $request): void
+    {
+        if (! method_exists($user, 'contract')) {
+            return;
+        }
+
+        $contract = $user->contract()->firstOrNew([]);
+        $isContract = $request->input('employment_status') === 'contract';
+
+        $contract->start_date = $isContract ? $request->input('contract_start_date') : null;
+        $contract->end_date = $isContract ? $request->input('contract_end_date') : null;
+
+        if ($request->hasFile('contract_document')) {
+            if ($contract->document) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($contract->document);
+            }
+            $contract->document = $request->file('contract_document')->store('contracts', 'public');
+        }
+
+        if ($contract->exists || $contract->document || $contract->start_date || $contract->end_date) {
+            $contract->user_id = $user->id;
+            $contract->save();
+        }
+    }
+
     private function orgOptions(): array
     {
         return OrgNode::orderBy('name')->get(['id', 'name'])->map(fn ($r) => ['value' => $r->id, 'label' => $r->name])->all();
@@ -478,6 +591,12 @@ class AdminResourceController extends Controller
     private function userOptions(): array
     {
         return User::orderBy('name')->limit(200)->get(['id', 'name'])->map(fn ($r) => ['value' => $r->id, 'label' => $r->name])->all();
+    }
+
+    private function supervisorOptions(): array
+    {
+        return User::orderBy('name')->limit(200)->get(['id', 'name', 'employee_id'])
+            ->map(fn ($r) => ['value' => $r->id, 'label' => $r->name.' ('.$r->employee_id.')'])->all();
     }
 
     private function roleOptions(): array

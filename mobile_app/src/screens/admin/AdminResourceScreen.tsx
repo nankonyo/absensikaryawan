@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,8 @@ import {
 } from 'react-native';
 import { RouteProp, useFocusEffect, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { Screen } from '../../components/Screen';
 import { Badge, Card, EmptyState } from '../../components/ui';
 import { Field } from '../../components/Field';
@@ -26,7 +29,11 @@ type AdminField = {
   type: string;
   required?: boolean;
   create_only?: boolean;
-  options?: { value: string | number; label: string }[];
+  accept?: string;
+  mimes?: string;
+  max?: number;
+  path?: string;
+  options?: any[];
 };
 
 type AdminItem = Record<string, any> & {
@@ -82,7 +89,7 @@ export const AdminResourceScreen = () => {
   const openCreate = () => {
     const initial: Record<string, any> = {};
     (schema?.fields || []).forEach((field) => {
-      initial[field.name] = field.type === 'switch' ? true : field.type === 'select' ? field.options?.[0]?.value ?? '' : '';
+      initial[field.name] = field.type === 'switch' ? true : field.type === 'attributes' ? {} : field.type === 'select' ? field.options?.[0]?.value ?? '' : '';
     });
     setEditing(null);
     setForm(initial);
@@ -93,26 +100,126 @@ export const AdminResourceScreen = () => {
     if (schema?.read_only) return;
     const initial: Record<string, any> = {};
     (schema?.fields || []).forEach((field) => {
-      initial[field.name] = field.type === 'password' ? '' : item[field.name] ?? (field.type === 'switch' ? false : '');
+      initial[field.name] = field.type === 'password'
+        ? ''
+        : field.type === 'attributes'
+          ? item.attribute_values ?? {}
+          : item[field.name] ?? (field.type === 'switch' ? false : '');
     });
     setEditing(item);
     setForm(initial);
     setModalOpen(true);
   };
 
+  const pickFile = async (field: AdminField) => {
+    try {
+      if (field.accept === 'image') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permission.status !== 'granted') {
+          Alert.alert('Izin diperlukan', 'Izinkan akses galeri untuk memilih gambar.');
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 0.7,
+        });
+
+        if (!result.canceled && result.assets?.[0]) {
+          const asset = result.assets[0];
+          setForm({
+            ...form,
+            [field.name]: {
+              uri: asset.uri,
+              name: asset.fileName || `${field.name}.jpg`,
+              type: asset.mimeType || 'image/jpeg',
+            },
+          });
+        }
+
+        return;
+      }
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        const asset = result.assets[0];
+        setForm({
+          ...form,
+          [field.name]: {
+            uri: asset.uri,
+            name: asset.name || `${field.name}`,
+            type: asset.mimeType || 'application/pdf',
+          },
+        });
+      }
+    } catch (error) {
+      Alert.alert('Gagal', 'Tidak dapat memilih file.');
+    }
+  };
+
+  const isFileValue = (value: any) => value && typeof value === 'object' && typeof value.uri === 'string';
+
   const submit = async () => {
     setSaving(true);
     try {
-      const payload: Record<string, any> = {};
-      (schema?.fields || []).forEach((field) => {
-        if (field.create_only && editing) return;
-        const value = form[field.name];
-        if (field.type === 'switch') {
-          payload[field.name] = value ? 1 : 0;
-        } else if (value !== undefined && value !== null && value !== '') {
-          payload[field.name] = value;
+      const fileFields = (schema?.fields || []).filter(
+        (field) => field.type === 'file' && isFileValue(form[field.name]),
+      );
+      const useFormData = fileFields.length > 0;
+
+      let payload: Record<string, any> | FormData = {};
+      if (useFormData) {
+        const formData = new FormData();
+        (schema?.fields || []).forEach((field) => {
+          if (field.create_only && editing) return;
+          const value = form[field.name];
+
+          if (field.type === 'file') {
+            if (isFileValue(value)) {
+              formData.append(field.name, {
+                uri: value.uri,
+                name: value.name,
+                type: value.type,
+              } as any);
+            }
+            return;
+          }
+
+          if (field.type === 'switch') {
+            formData.append(field.name, value ? '1' : '0');
+          } else if (value !== undefined && value !== null && value !== '') {
+            formData.append(field.name, String(value));
+          }
+        });
+
+        if (editing) {
+          formData.append('_method', 'PUT');
         }
-      });
+
+        payload = formData;
+      } else {
+        const data: Record<string, any> = {};
+        (schema?.fields || []).forEach((field) => {
+          if (field.create_only && editing) return;
+          const value = form[field.name];
+          if (field.type === 'file') return;
+          if (field.type === 'attributes') {
+            data[field.name] = value || {};
+            return;
+          }
+          if (field.type === 'switch') {
+            data[field.name] = value ? 1 : 0;
+          } else if (value !== undefined && value !== null && value !== '') {
+            data[field.name] = value;
+          }
+        });
+        payload = data;
+      }
 
       if (editing) {
         await adminApi.update(resource, editing.id, payload);
@@ -335,6 +442,7 @@ export const AdminResourceScreen = () => {
                     value={form[field.name] === undefined || form[field.name] === null ? '' : String(form[field.name])}
                     onChangeText={(value) => setForm({ ...form, [field.name]: value })}
                     keyboardType={field.type === 'number' ? 'numeric' : field.type === 'email' ? 'email-address' : 'default'}
+                    placeholder={field.type === 'date' ? 'YYYY-MM-DD' : undefined}
                     secureTextEntry={field.type === 'password'}
                     autoCapitalize={field.type === 'email' ? 'none' : 'sentences'}
                     multiline={field.type === 'textarea'}
@@ -426,6 +534,19 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: 11, color: colors.muted },
   chipTextActive: { color: '#fff', fontWeight: '700' },
+  avatarPreview: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#f1f5f9' },
+  fileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+  },
+  fileButtonText: { fontSize: 12, fontWeight: '700', color: colors.primary },
   saveButton: {
     borderRadius: radius.md,
     backgroundColor: colors.primary,

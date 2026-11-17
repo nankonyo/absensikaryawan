@@ -45,22 +45,26 @@ export const TopNav = () => {
       </View>
 
       <View style={styles.rowTwo}>
-        <Text style={styles.meta} numberOfLines={1}>
-          <Text style={styles.metaLabel}>NIP </Text>
-          {user?.employee_id || '-'}
-        </Text>
-        <Text style={styles.dot}>•</Text>
-        <Text style={styles.meta} numberOfLines={1}>
-          {user?.name || '-'}
-        </Text>
-        <Text style={styles.dot}>•</Text>
-        <Text style={[styles.meta, styles.email]} numberOfLines={1}>
-          {user?.email || '-'}
-        </Text>
-        <Text style={styles.dot}>•</Text>
-        <Text style={styles.meta} numberOfLines={1}>
-          {role}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.meta} numberOfLines={1}>
+            <Text style={styles.metaLabel}>NIP </Text>
+            {user?.employee_id || '-'}
+          </Text>
+          <Text style={styles.dot}>•</Text>
+          <Text style={styles.metaName} numberOfLines={1}>
+            {user?.name || '-'}
+          </Text>
+        </View>
+
+        <View style={styles.smallRow}>
+          <Text style={styles.smallMeta} numberOfLines={1}>
+            {user?.email || '-'}
+          </Text>
+          <Text style={styles.smallDot}>•</Text>
+          <Text style={styles.smallMeta} numberOfLines={1}>
+            {role}
+          </Text>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -79,6 +83,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   logo: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#fff' },
   logoFallback: {
@@ -92,13 +99,23 @@ const styles = StyleSheet.create({
   logoText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   appName: { flex: 1, fontSize: 17, fontWeight: '800', color: colors.text },
   rowTwo: {
-    marginTop: 4,
+    marginTop: spacing.sm,
+    gap: 2,
+  },
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
+  smallRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
   meta: { fontSize: 11, color: colors.muted, flexShrink: 1 },
+  metaName: { fontSize: 12, color: colors.text, fontWeight: '600', flexShrink: 1 },
   metaLabel: { fontWeight: '700', color: colors.text },
-  email: { flexShrink: 1, maxWidth: 130 },
+  smallMeta: { fontSize: 10, color: colors.subtle, flexShrink: 1 },
+  smallDot: { fontSize: 9, color: colors.subtle },
   dot: { fontSize: 10, color: colors.subtle },
 });
