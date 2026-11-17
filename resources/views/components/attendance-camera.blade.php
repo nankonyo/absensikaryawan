@@ -137,7 +137,10 @@
 
     const MSG = {
         cameraError: @json(__('ui.camera_error', ['message' => '__MSG__'])),
+        cameraInsecure: @json(__('ui.camera_insecure_context')),
+        cameraUnsupported: @json(__('ui.camera_unsupported')),
         locationError: @json(__('ui.location_error', ['message' => '__MSG__'])),
+        locationInsecure: @json(__('ui.location_insecure_context')),
         geolocationUnsupported: @json(__('ui.geolocation_unsupported')),
         processing: @json(__('ui.processing')),
         faceMatching: @json(__('ui.face_matching')),
@@ -173,6 +176,15 @@
             },
 
             async startCamera() {
+                // Browsers only expose the camera (and geolocation) on a secure
+                // context: HTTPS or localhost. Over plain HTTP navigator.mediaDevices
+                // is undefined, which used to surface as a cryptic JS error.
+                if (!this.cameraAvailable()) {
+                    this.toast(window.isSecureContext ? MSG.cameraUnsupported : MSG.cameraInsecure);
+
+                    return;
+                }
+
                 try {
                     this.stream = await navigator.mediaDevices.getUserMedia({
                         video: {
@@ -190,6 +202,10 @@
                 }
             },
 
+            cameraAvailable() {
+                return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            },
+
             stopCamera() {
                 if (this.stream) {
                     this.stream.getTracks().forEach(track => track.stop());
@@ -198,8 +214,16 @@
             },
 
             async capture() {
-                if (this.busy || !this.stream) {
+                if (this.busy) {
                     return;
+                }
+
+                if (!this.stream) {
+                    await this.startCamera();
+
+                    if (!this.stream) {
+                        return;
+                    }
                 }
 
                 this.busy = true;
@@ -310,6 +334,10 @@
                     return Promise.reject(new Error(MSG.geolocationUnsupported));
                 }
 
+                if (!window.isSecureContext) {
+                    return Promise.reject(new Error(MSG.locationInsecure));
+                }
+
                 // A recent fix from the background watch is good enough; skip the cold GPS wait.
                 if (this.lastPosition && this.isUsableFix(this.lastPosition)) {
                     return Promise.resolve(this.lastPosition);
@@ -328,7 +356,7 @@
             },
 
             startPositionWatch() {
-                if (!navigator.geolocation) {
+                if (!navigator.geolocation || !window.isSecureContext) {
                     return;
                 }
 
