@@ -9,7 +9,7 @@ import { LeaveScreen } from '../screens/leave/LeaveScreen';
 import { TeamScreen } from '../screens/team/TeamScreen';
 import { ApprovalScreen } from '../screens/approval/ApprovalScreen';
 import { InternalNavigator } from './InternalNavigator';
-import { MoreScreen } from '../screens/MoreScreen';
+import { MoreNavigator } from './MoreNavigator';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { colors } from '../theme';
 
@@ -55,9 +55,7 @@ export const BottomTabs = () => {
         options={{ title: 'Internal', tabBarIcon: icon('apps') }}
       />
 
-      {isAdmin && (
-        <Tab.Screen name="More" component={MoreScreen} options={{ title: 'Admin', tabBarIcon: icon('settings') }} />
-      )}
+      <Tab.Screen name="More" component={MoreNavigator} options={{ title: isAdmin ? 'Admin' : 'Lainnya', tabBarIcon: icon('settings') }} />
 
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil', tabBarIcon: icon('person') }} />
     </Tab.Navigator>

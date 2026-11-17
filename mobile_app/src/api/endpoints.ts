@@ -122,3 +122,25 @@ export const profileApi = {
   show: () => api.get<{ user: User }>('/profile'),
   update: (payload: { name: string; phone?: string }) => api.put<{ user: User }>('/profile', payload),
 };
+
+export const adminApi = {
+  schema: (resource: string) => api.get<{ title: string; read_only: boolean; fields: any[] }>(`/admin/resources/${resource}/schema`),
+  list: (resource: string, params?: { q?: string; page?: number; per_page?: number }) =>
+    api.get<{ data: { data: any[]; current_page: number; last_page: number } }>(`/admin/resources/${resource}`, { params }),
+  create: (resource: string, payload: Record<string, unknown>) =>
+    api.post(`/admin/resources/${resource}`, payload),
+  update: (resource: string, id: number, payload: Record<string, unknown>) =>
+    api.put(`/admin/resources/${resource}/${id}`, payload),
+  remove: (resource: string, id: number) => api.delete(`/admin/resources/${resource}/${id}`),
+};
+
+export const appApi = {
+  info: () =>
+    api.get<{
+      app_name: string;
+      company_name: string;
+      logo_url?: string | null;
+      play_store_url?: string | null;
+      app_store_url?: string | null;
+    }>('/app-info'),
+};

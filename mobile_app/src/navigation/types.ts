@@ -18,3 +18,8 @@ export type InternalStackParamList = {
   Activities: undefined;
   Contents: undefined;
 };
+
+export type MoreStackParamList = {
+  MoreHome: undefined;
+  AdminResource: { resource: string; title: string };
+};

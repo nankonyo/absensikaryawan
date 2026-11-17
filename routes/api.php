@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\ActivityController;
 use App\Http\Controllers\Api\ApprovalController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\AdminResourceController;
+use App\Http\Controllers\Api\AppInfoController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\DashboardController;
@@ -51,6 +53,7 @@ Route::post('mobile/login', [AuthController::class, 'login']);
 
 Route::middleware('api-token')->prefix('mobile')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
+    Route::get('app-info', [AppInfoController::class, 'index']);
     Route::post('logout', [AuthController::class, 'logout']);
 
     Route::get('dashboard', [DashboardController::class, 'index']);
@@ -101,6 +104,15 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
         Route::get('videos', [ContentController::class, 'videos']);
         Route::get('dokumentasi', [ContentController::class, 'dokumentasi']);
         Route::get('pengumuman', [ContentController::class, 'pengumuman']);
+    });
+
+
+    Route::prefix('admin/resources')->group(function () {
+        Route::get('{resource}/schema', [AdminResourceController::class, 'schema']);
+        Route::get('{resource}', [AdminResourceController::class, 'index']);
+        Route::post('{resource}', [AdminResourceController::class, 'store']);
+        Route::put('{resource}/{id}', [AdminResourceController::class, 'update']);
+        Route::delete('{resource}/{id}', [AdminResourceController::class, 'destroy']);
     });
 
     Route::prefix('profile')->group(function () {
