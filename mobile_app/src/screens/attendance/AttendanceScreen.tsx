@@ -1,0 +1,264 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
+import { Screen } from '../../components/Screen';
+import { Badge, Button, Card, EmptyState, SectionTitle } from '../../components/ui';
+import { Field } from '../../components/Field';
+import { attendanceApi } from '../../api/endpoints';
+import { apiMessage } from '../../api/client';
+import type { Attendance } from '../../types';
+import { colors, radius, spacing, statusColor } from '../../theme';
+
+type TodayData = Awaited<ReturnType<typeof attendanceApi.today>>['data'];
+
+export const AttendanceScreen = () => {
+  const [tab, setTab] = useState<'today' | 'history'>('today');
+  const [data, setData] = useState<TodayData | null>(null);
+  const [history, setHistory] = useState<Attendance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [reasonId, setReasonId] = useState<number | null>(null);
+  const [notes, setNotes] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      const [today, historyResponse] = await Promise.all([
+        attendanceApi.today(),
+        attendanceApi.history({ per_page: 20 }),
+      ]);
+      setData(today.data);
+      setHistory(historyResponse.data.data);
+    } catch (err) {
+      Alert.alert('Gagal memuat', apiMessage(err));
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const locate = async () => {
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (permission.status !== 'granted') {
+      throw new Error('Izin lokasi ditolak. Aktifkan GPS dan izin lokasi.');
+    }
+
+    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    const [address] = await Location.reverseGeocodeAsync({
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    });
+
+    const addressText = address
+      ? [address.street, address.district, address.city, address.region].filter(Boolean).join(', ')
+      : undefined;
+
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      address: addressText,
+    };
+  };
+
+  const takePhoto = async (): Promise<string | undefined> => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (permission.status !== 'granted') return undefined;
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.5,
+      base64: true,
+      cameraType: ImagePicker.CameraType.front,
+    });
+
+    if (result.canceled || !result.assets?.length) return undefined;
+    const asset = result.assets[0];
+    return asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : undefined;
+  };
+
+  const submit = async (mode: 'in' | 'out') => {
+    setSubmitting(true);
+    try {
+      const location = await locate();
+      const photo = await takePhoto();
+
+      const payload: Record<string, unknown> = {
+        ...location,
+        attendance_reason_id: reasonId ?? undefined,
+        notes: notes || undefined,
+      };
+      if (photo) payload.photo_data = photo;
+
+      const response =
+        mode === 'in' ? await attendanceApi.checkIn(payload) : await attendanceApi.checkOut(payload);
+
+      Alert.alert('Berhasil', response.data.message ?? 'Presensi tersimpan.');
+      setNotes('');
+      setReasonId(null);
+      await load();
+    } catch (err) {
+      Alert.alert('Presensi gagal', apiMessage(err, 'Tidak dapat menyimpan presensi.'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Screen>
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.primary} />
+          <Text style={styles.muted}>Memuat presensi...</Text>
+        </View>
+      </Screen>
+    );
+  }
+
+  const attendance = data?.attendance;
+
+  return (
+    <Screen
+      scroll
+    >
+      <View style={styles.tabs}>
+        <TabButton label="Hari Ini" active={tab === 'today'} onPress={() => setTab('today')} />
+        <TabButton label="Riwayat" active={tab === 'history'} onPress={() => setTab('history')} />
+      </View>
+
+      {tab === 'today' ? (
+        <>
+          <Card style={styles.todayCard}>
+            <View style={styles.rowBetween}>
+              <View>
+                <Text style={styles.muted}>Status presensi</Text>
+                <Text style={styles.bigStatus}>
+                  {attendance?.check_in ? (attendance?.check_out ? 'Presensi selesai' : 'Sudah check-in') : 'Belum check-in'}
+                </Text>
+                <Text style={styles.muted}>
+                  {attendance?.check_in ? `Masuk ${String(attendance.check_in).slice(0, 5)}` : '—'}
+                  {attendance?.check_out ? ` · Pulang ${String(attendance.check_out).slice(0, 5)}` : ''}
+                </Text>
+              </View>
+              <Badge
+                label={attendance?.status?.toUpperCase() ?? 'BELUM'}
+                bg={statusColor(attendance?.status).bg}
+                color={statusColor(attendance?.status).text}
+              />
+            </View>
+
+            <View style={styles.officeBox}>
+              <Ionicons name="location" size={16} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.officeName}>{data?.office?.name ?? 'Kantor belum diatur'}</Text>
+                <Text style={styles.muted}>
+                  Radius {data?.office?.radius ?? 0} m · Jam kerja {data?.work_start_time} - {data?.work_end_time}
+                </Text>
+              </View>
+            </View>
+          </Card>
+
+          <Card style={{ gap: spacing.md }}>
+            <Text style={styles.sectionLabel}>Alasan kehadiran (jika di luar zona)</Text>
+            <View style={styles.chips}>
+              {(data?.reasons ?? []).map((reason) => (
+                <TouchableOpacity
+                  key={reason.id}
+                  style={[styles.chip, reasonId === reason.id && styles.chipActive]}
+                  onPress={() => setReasonId(reasonId === reason.id ? null : reason.id)}
+                >
+                  <Text style={[styles.chipText, reasonId === reason.id && styles.chipTextActive]}>{reason.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Field label="Catatan (opsional)" value={notes} onChangeText={setNotes} placeholder="Catatan presensi" />
+
+            <Button
+              label={submitting ? 'Memproses...' : 'Check-in sekarang'}
+              onPress={() => submit('in')}
+              disabled={submitting || Boolean(attendance?.check_in)}
+            />
+            <Button
+              label={submitting ? 'Memproses...' : 'Check-out sekarang'}
+              onPress={() => submit('out')}
+              variant="secondary"
+              disabled={submitting || Boolean(attendance?.check_out)}
+            />
+            <Text style={styles.hint}>
+              Lokasi dan foto diambil saat tombol ditekan. Jika di luar radius, pilih alasan kehadiran agar masuk verifikasi.
+            </Text>
+          </Card>
+        </>
+      ) : (
+        <>
+          <SectionTitle title="Riwayat Presensi" />
+          {history.length === 0 ? (
+            <EmptyState message="Belum ada riwayat presensi." />
+          ) : (
+            history.map((item) => (
+              <Card key={item.id} style={styles.historyItem}>
+                <View style={styles.rowBetween}>
+                  <View>
+                    <Text style={styles.date}>{new Date(item.date).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</Text>
+                    <Text style={styles.muted}>
+                      Masuk {item.check_in ? String(item.check_in).slice(0, 5) : '—'} · Pulang{' '}
+                      {item.check_out ? String(item.check_out).slice(0, 5) : '—'}
+                    </Text>
+                  </View>
+                  <Badge
+                    label={item.status?.toUpperCase() ?? '-'}
+                    bg={statusColor(item.status).bg}
+                    color={statusColor(item.status).text}
+                  />
+                </View>
+              </Card>
+            ))
+          )}
+        </>
+      )}
+    </Screen>
+  );
+};
+
+const TabButton = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
+  <TouchableOpacity onPress={onPress} style={[styles.tabButton, active && styles.tabButtonActive]}>
+    <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+  </TouchableOpacity>
+);
+
+const styles = StyleSheet.create({
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 80 },
+  muted: { fontSize: 12, color: colors.muted },
+  tabs: { flexDirection: 'row', backgroundColor: '#eef2f7', borderRadius: radius.md, padding: 4, gap: 4 },
+  tabButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: radius.sm },
+  tabButtonActive: { backgroundColor: '#fff' },
+  tabText: { fontSize: 13, fontWeight: '600', color: colors.muted },
+  tabTextActive: { color: colors.primary },
+  todayCard: { gap: spacing.md },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
+  bigStatus: { fontSize: 20, fontWeight: '800', color: colors.text, marginVertical: 2 },
+  officeBox: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'center',
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  officeName: { fontWeight: '700', color: colors.text },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: colors.text },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.full, paddingHorizontal: 12, paddingVertical: 6 },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 12, color: colors.muted },
+  chipTextActive: { color: '#fff', fontWeight: '700' },
+  hint: { fontSize: 11, color: colors.subtle, lineHeight: 16 },
+  historyItem: {},
+  date: { fontWeight: '700', color: colors.text },
+});

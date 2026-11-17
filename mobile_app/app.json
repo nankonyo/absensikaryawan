@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "RST Internal App",
+    "slug": "rst-internal-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "rstinternal",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#2563eb",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Lokasi digunakan untuk validasi presensi kantor.",
+        "NSCameraUsageDescription": "Kamera digunakan untuk foto presensi."
+      }
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#2563eb"
+      }
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Lokasi digunakan untuk validasi presensi kantor."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Kamera digunakan untuk foto presensi."
+        }
+      ],
+      "expo-asset",
+      "expo-font"
+    ]
+  }
+}

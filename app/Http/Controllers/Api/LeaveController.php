@@ -31,7 +31,7 @@ class LeaveController extends Controller
     public function types()
     {
         return response()->json([
-            'types' => LeaveType::where('is_active', true)->orderBy('name')->get(['id', 'name', 'description']),
+            'types' => LeaveType::where('is_active', true)->orderBy('name')->get(['id', 'name', 'category', 'requires_attachment', 'requires_reason', 'deducts_quota']),
         ]);
     }
 
