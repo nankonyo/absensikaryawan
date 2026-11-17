@@ -50,7 +50,7 @@ class User extends Authenticatable
      */
     public function getAvatarUrlAttribute(): ?string
     {
-        return $this->avatar ? \Illuminate\Support\Facades\Storage::url($this->avatar) : null;
+        return $this->avatar ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->avatar) : null;
     }
 
     /**
@@ -81,7 +81,7 @@ class User extends Authenticatable
      */
     public function getContractDocumentUrlAttribute(): ?string
     {
-        return $this->contract_document ? \Illuminate\Support\Facades\Storage::url($this->contract_document) : null;
+        return $this->contract_document ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->contract_document) : null;
     }
 
     public function isContract(): bool

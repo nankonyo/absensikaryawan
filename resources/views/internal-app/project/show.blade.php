@@ -31,8 +31,8 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 <button @click="edit=true" class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
-                <a href="{{ route('internal.projects.board', ['project_id'=>$project->id]) }}" @click.prevent="$store.spa.navigate($el.href)" class="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Kanban</a>
-                <a href="{{ route('internal.projects.gantt', ['project_id'=>$project->id]) }}" @click.prevent="$store.spa.navigate($el.href)" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Gantt</a>
+                <a href="{{ route('internal.projects.board', ['project_id'=>$project->id]) }}" class="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Kanban</a>
+                <a href="{{ route('internal.projects.gantt', ['project_id'=>$project->id]) }}" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Gantt</a>
             </div>
         </div>
         <div class="mt-4">
@@ -139,11 +139,11 @@
         <div class="ia-card p-5 xl:col-span-2">
             <div class="flex items-center justify-between">
                 <h2 class="font-bold text-slate-800">Task ({{ $tasks->count() }})</h2>
-                <a href="{{ route('internal.projects.board', ['project_id'=>$project->id]) }}" @click.prevent="$store.spa.navigate($el.href)" class="text-xs font-semibold text-blue-600">Buka Kanban</a>
+                <a href="{{ route('internal.projects.board', ['project_id'=>$project->id]) }}" class="text-xs font-semibold text-blue-600">Buka Kanban</a>
             </div>
             <div class="mt-3 space-y-2">
                 @forelse($tasks as $t)
-                <a href="{{ route('internal.projects.tasks.show', $t->id) }}" @click.prevent="$store.spa.navigate($el.href)" class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 p-3 hover:bg-slate-50">
+                <a href="{{ route('internal.projects.tasks.show', $t->id) }}" class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 p-3 hover:bg-slate-50">
                     <div class="min-w-0">
                         <p class="truncate text-sm font-semibold text-slate-700">{{ $t->title }}</p>
                         <p class="text-[11px] text-slate-400">{{ $t->assignee_name }} · {{ str_replace('_', ' ', $t->status) }}</p>

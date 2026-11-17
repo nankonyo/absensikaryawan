@@ -2,8 +2,96 @@ import './bootstrap';
 import './datepicker';
 
 import Alpine from 'alpinejs';
+import $ from 'jquery';
+import toastr from 'toastr';
+import 'toastr/build/toastr.min.css';
+import { Editor } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
 
 window.Alpine = Alpine;
+window.$ = window.jQuery = $;
+window.toastr = toastr;
+
+toastr.options = {
+    closeButton: true,
+    progressBar: true,
+    positionClass: 'toast-bottom-center',
+    timeOut: 4000,
+    extendedTimeOut: 1500,
+    newestOnTop: true,
+    preventDuplicates: true,
+    showMethod: 'slideDown',
+    hideMethod: 'fadeOut',
+};
+
+Alpine.store('iaProgress', { value: 0, visible: false });
+
+const setProgress = (value, visible = true) => {
+    if (window.iaSetProgress) window.iaSetProgress(value, visible);
+
+    const store = Alpine.store('iaProgress');
+    store.value = value;
+    store.visible = visible;
+    window.dispatchEvent(new CustomEvent('ia-progress', { detail: { value, visible } }));
+};
+
+document.addEventListener('livewire:init', () => {
+    window.Livewire.on('notify', (payload) => {
+        const data = Array.isArray(payload) ? payload[0] : payload;
+        const type = ['success', 'error', 'warning', 'info'].includes(data?.type) ? data.type : 'info';
+        toastr[type](data?.message ?? '', data?.title ?? '');
+    });
+
+    window.Livewire.hook('commit', ({ succeed, fail }) => {
+        setProgress(8);
+        let value = 8;
+        const timer = setInterval(() => {
+            value = Math.min(92, value + Math.ceil(Math.random() * 12));
+            setProgress(value);
+        }, 220);
+
+        succeed(() => {
+            clearInterval(timer);
+            setProgress(100);
+            setTimeout(() => setProgress(0, false), 500);
+        });
+
+        fail(() => {
+            clearInterval(timer);
+            setProgress(0, false);
+        });
+    });
+});
+
+Alpine.data('tiptapEditor', (config = {}) => ({
+    editor: null,
+
+    init() {
+        this.editor = new Editor({
+            element: this.$refs.editor,
+            extensions: [
+                StarterKit,
+                Link.configure({ openOnClick: false }),
+                Placeholder.configure({ placeholder: config.placeholder ?? 'Tulis di sini...' }),
+            ],
+            content: config.content ?? '',
+            onUpdate: () => {
+                const html = this.editor.getHTML();
+                if (this.$refs.input) {
+                    this.$refs.input.value = html;
+                    this.$refs.input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            },
+        });
+    },
+
+    destroy() {
+        this.editor?.destroy();
+    },
+}));
+
 
 /**
  * Copy the header text into each cell so the mobile card layout can show

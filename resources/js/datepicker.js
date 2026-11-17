@@ -24,7 +24,7 @@ const placeholders = isIndonesian
 const configs = {
     date: {
         dateFormat: 'Y-m-d',
-        altFormat: 'd M Y',
+        altFormat: 'd-m-Y',
     },
     month: {
         dateFormat: 'Y-m',
@@ -42,7 +42,7 @@ const configs = {
         enableTime: true,
         time_24hr: true,
         dateFormat: 'Y-m-d\\TH:i',
-        altFormat: 'd M Y H:i',
+        altFormat: 'd-m-Y H:i',
     },
 };
 

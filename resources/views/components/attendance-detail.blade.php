@@ -90,7 +90,7 @@
                 <div>
                     <p class="text-sm text-gray-500 mb-2">{{ __('ui.check_in_selfie') }}</p>
                     @if($attendance->check_in_photo)
-                        <img src="{{ Storage::url($attendance->check_in_photo) }}" alt="{{ __('ui.check_in_selfie') }}"
+                        <img src="{{ Storage::disk('public')->url($attendance->check_in_photo) }}" alt="{{ __('ui.check_in_selfie') }}"
                              class="w-full h-64 object-cover rounded-lg">
                     @else
                         <div class="w-full h-64 rounded-lg bg-gray-100 flex items-center justify-center text-sm text-gray-500">
@@ -112,7 +112,7 @@
                 <div>
                     <p class="text-sm text-gray-500 mb-2">{{ __('ui.check_out_selfie') }}</p>
                     @if($attendance->check_out_photo)
-                        <img src="{{ Storage::url($attendance->check_out_photo) }}" alt="{{ __('ui.check_out_selfie') }}"
+                        <img src="{{ Storage::disk('public')->url($attendance->check_out_photo) }}" alt="{{ __('ui.check_out_selfie') }}"
                              class="w-full h-64 object-cover rounded-lg">
                     @else
                         <div class="w-full h-64 rounded-lg bg-gray-100 flex items-center justify-center text-sm text-gray-500">

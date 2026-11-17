@@ -121,7 +121,13 @@
     </form>
 </div>
 
-@vite('resources/js/face-match.js')
+@if (config('app.asset_mode') === 'cdn')
+    <script>window.FACE_MODEL_URL = "{{ asset('models') }}";</script>
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.min.js"></script>
+    <script src="{{ asset('cdn/face-match.js') }}?v={{ @filemtime(public_path('cdn/face-match.js')) }}"></script>
+@else
+    @vite('resources/js/face-match.js')
+@endif
 
 <script>
     const FACE_ENABLED = @json(app(\App\Services\FaceRecognitionService::class)->isEnabled());

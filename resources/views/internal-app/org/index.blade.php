@@ -108,6 +108,6 @@ async function deleteNode(id){if(!confirm('Hapus node dan seluruh anaknya?'))ret
 async function syncDefaults(){try{const d=await postJson('{{ route('internal.organization.sync-defaults') }}',{});iaToast(d.message);setTimeout(()=>iaReload(),400);}catch(e){iaToast(e.message,false)}}
 
 initOrgSortable();
-window.addEventListener('spa:navigated', function () { setTimeout(initOrgSortable, 50); });
+window.addEventListener('livewire:navigated', function () { setTimeout(initOrgSortable, 50); });
 </script>
 @endsection

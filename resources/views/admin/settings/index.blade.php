@@ -144,7 +144,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('ui.company_logo') }}</label>
 
                         @if($settings['company_logo']->value ?? null)
-                            <img src="{{ \Illuminate\Support\Facades\Storage::url($settings['company_logo']->value) }}"
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($settings['company_logo']->value) }}"
                                  alt="{{ __('ui.company_logo') }}"
                                  class="h-16 w-auto max-w-full object-contain mb-3 rounded border border-gray-200 bg-white p-2">
                         @endif

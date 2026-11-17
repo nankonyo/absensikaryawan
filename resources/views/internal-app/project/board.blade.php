@@ -12,7 +12,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2">
             <label class="text-xs font-semibold text-slate-500">Project</label>
-            <select id="pm-project-select" onchange="if(this.value){(window.Alpine&&Alpine.store('spa'))?Alpine.store('spa').navigate(this.value):(location.href=this.value)}" class="min-w-[220px] rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <select id="pm-project-select" onchange="if(this.value){location.href=this.value}" class="min-w-[220px] rounded-xl border border-slate-200 px-3 py-2 text-sm">
                 <option value="">— Pilih Project —</option>
                 @foreach($projects as $p)
                 <option value="{{ route('internal.projects.board', ['project_id'=>$p->id]) }}" @selected($project && $project->id==$p->id)>{{ $p->name }}</option>
@@ -22,13 +22,13 @@
         @if($project)
         <button @click="modal=true" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><i class="fa-solid fa-plus mr-1"></i>Tambah Task</button>
         @else
-        <a href="{{ route('internal.projects.index') }}" @click.prevent="$store.spa.navigate($el.href)" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><i class="fa-solid fa-plus mr-1"></i>Buat Project</a>
+        <a href="{{ route('internal.projects.index') }}" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><i class="fa-solid fa-plus mr-1"></i>Buat Project</a>
         @endif
     </div>
 
     @if($projects->isEmpty())
     <div class="ia-card p-10 text-center text-sm text-slate-400">
-        Belum ada project. <a href="{{ route('internal.projects.index') }}" @click.prevent="$store.spa.navigate($el.href)" class="font-semibold text-blue-600">Buat project</a> terlebih dahulu.
+        Belum ada project. <a href="{{ route('internal.projects.index') }}" class="font-semibold text-blue-600">Buat project</a> terlebih dahulu.
     </div>
     @else
     <div id="pm-kanban" class="grid gap-4 xl:grid-cols-5 overflow-x-auto pb-2">
@@ -40,7 +40,7 @@
             </div>
             <div class="space-y-2 min-h-[80px]" data-dropzone>
                 @foreach(($grouped[$status] ?? collect()) as $task)
-                <div draggable="true" data-task-id="{{ $task->id }}" ondragstart="dragTask(event)" class="cursor-grab rounded-xl border border-slate-200 bg-white p-3 shadow-sm active:cursor-grabbing">
+                <div draggable="true" data-task-id="{{ $task->id }}" ondragstart="dragTask(event)" onclick="window.location.href='{{ route('internal.projects.tasks.show', $task->id) }}'" class="cursor-pointer rounded-xl border border-slate-200 bg-white p-3 shadow-sm active:cursor-grabbing">
                     <div class="flex items-start justify-between gap-2">
                         <span class="rounded px-1.5 py-0.5 text-[10px] font-bold {{ $prio[$task->priority] ?? '' }}">{{ strtoupper($task->priority) }}</span>
                         <span class="text-[10px] font-semibold text-slate-400">{{ $task->progress }}%</span>

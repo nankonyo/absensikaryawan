@@ -79,7 +79,7 @@
                     @if($leave->attachment)
                         <div class="p-4 bg-gray-50 rounded-lg">
                             <p class="text-sm text-gray-700 mb-2">{{ __('ui.current_attachment') }}</p>
-                            <a href="{{ Storage::url($leave->attachment) }}" target="_blank" 
+                            <a href="{{ Storage::disk('public')->url($leave->attachment) }}" target="_blank" 
                                class="text-blue-600 hover:underline text-sm">
                                 {{ __('ui.view_attachment') }}
                             </a>

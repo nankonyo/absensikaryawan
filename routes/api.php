@@ -12,6 +12,42 @@ use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\TeamController;
 use Illuminate\Support\Facades\Route;
 
+if (app()->environment('local')) {
+    Route::get('__dev/version', function () {
+        $version = \Illuminate\Support\Facades\Cache::store('file')->remember('dev.asset.version', 3, function () {
+            $paths = [
+                resource_path('views'),
+                resource_path('css'),
+                resource_path('js'),
+                public_path('css'),
+                public_path('cdn'),
+                base_path('routes'),
+                base_path('app/Livewire'),
+            ];
+
+            $versions = [];
+
+            foreach ($paths as $path) {
+                if (! is_dir($path)) {
+                    continue;
+                }
+
+                $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path));
+
+                foreach ($iterator as $file) {
+                    if ($file->isFile()) {
+                        $versions[] = $file->getMTime();
+                    }
+                }
+            }
+
+            return md5(implode(',', $versions));
+        });
+
+        return response()->json(['version' => $version]);
+    })->name('dev.version');
+}
+
 Route::post('mobile/login', [AuthController::class, 'login']);
 
 Route::middleware('api-token')->prefix('mobile')->group(function () {

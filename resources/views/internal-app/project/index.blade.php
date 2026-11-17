@@ -27,9 +27,9 @@
             <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-2 rounded-full bg-blue-600" style="width:{{ $p->progress }}%"></div></div>
             <div class="mt-2 flex items-center justify-between text-[11px] text-slate-400"><span>{{ $p->start_date ?: '-' }} s/d {{ $p->end_date ?: '-' }}</span><span>{{ $p->updated_at }}</span></div>
             <div class="mt-4 grid grid-cols-3 gap-2">
-                <a href="{{ route('internal.projects.show', ['id'=>$p->id]) }}" @click.prevent="$store.spa.navigate($el.href)" class="rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-600">Detail</a>
-                <a href="{{ route('internal.projects.board', ['project_id'=>$p->id]) }}" @click.prevent="$store.spa.navigate($el.href)" class="rounded-lg bg-slate-900 py-2 text-center text-xs font-semibold text-white">Kanban</a>
-                <a href="{{ route('internal.projects.gantt', ['project_id'=>$p->id]) }}" @click.prevent="$store.spa.navigate($el.href)" class="rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-600">Gantt</a>
+                <a href="{{ route('internal.projects.show', ['id'=>$p->id]) }}" class="rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-600">Detail</a>
+                <a href="{{ route('internal.projects.board', ['project_id'=>$p->id]) }}" class="rounded-lg bg-slate-900 py-2 text-center text-xs font-semibold text-white">Kanban</a>
+                <a href="{{ route('internal.projects.gantt', ['project_id'=>$p->id]) }}" class="rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-600">Gantt</a>
             </div>
         </div>
         @empty

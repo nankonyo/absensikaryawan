@@ -74,6 +74,6 @@ class Leave extends Model
 
     public function getAttachmentUrl(): ?string
     {
-        return $this->attachment ? Storage::url($this->attachment) : null;
+        return $this->attachment ? Storage::disk('public')->url($this->attachment) : null;
     }
 }

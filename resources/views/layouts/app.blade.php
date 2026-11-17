@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? config('app.name', 'Laravel') }}</title>
+    <title>{{ !empty($header) ? $header.' — '.config('app.name', 'Laravel') : config('app.name', 'Laravel') }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
     <!-- Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('partials.assets')
+    @livewireStyles
 </head>
 @php($lockScroll = request()->routeIs('karyawan.attendance.check-in', 'karyawan.attendance.check-out'))
-<body class="font-sans antialiased bg-gray-50 {{ $lockScroll ? 'fixed inset-0 overflow-hidden overscroll-none' : '' }}">
+<body class="font-sans antialiased bg-[#F8FAFC] {{ $lockScroll ? 'fixed inset-0 overflow-hidden overscroll-none' : '' }}">
     <div class="min-h-screen flex" x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false">
         <!-- Mobile overlay -->
         <div x-show="sidebarOpen" x-transition.opacity @click="sidebarOpen = false"
@@ -38,6 +39,7 @@
     </div>
 
     <x-toast />
+    @livewireScripts
     <script>
         (function () {
             document.addEventListener('change', function (event) {
@@ -75,5 +77,6 @@
             });
         })();
     </script>
+    @include('partials.dev-reload')
 </body>
 </html>

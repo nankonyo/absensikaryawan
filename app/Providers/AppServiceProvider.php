@@ -19,11 +19,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if ($rootUrl = config('app.url')) {
+        if (! app()->runningUnitTests() && ($rootUrl = config('app.url'))) {
             \Illuminate\Support\Facades\URL::forceRootUrl($rootUrl);
         }
 
         try {
+            $appName = \App\Models\Setting::get('app_name');
+
+            if ($appName) {
+                config(['app.name' => $appName]);
+            }
+
             $timezone = \App\Models\Setting::get('timezone');
 
             if ($timezone && in_array($timezone, timezone_identifiers_list(), true)) {

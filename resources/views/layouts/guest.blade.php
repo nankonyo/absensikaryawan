@@ -1,3 +1,5 @@
+@props(['full' => false])
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
@@ -12,9 +14,13 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @include('partials.assets')
+        @livewireStyles
     </head>
     <body class="font-sans text-gray-900 antialiased">
+        @if($full)
+            {{ $slot }}
+        @else
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
             <div class="w-full sm:max-w-md flex justify-end px-6">
                 <label for="guest-locale-switcher" class="sr-only">{{ __('ui.language') }}</label>
@@ -30,7 +36,7 @@
                 <a href="/">
                     @php($companyLogo = \App\Models\Setting::get('company_logo'))
                     @if($companyLogo)
-                        <img src="{{ \Illuminate\Support\Facades\Storage::url($companyLogo) }}"
+                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($companyLogo) }}"
                              alt="{{ config('app.name') }}"
                              class="h-20 w-auto max-w-full object-contain">
                     @else
@@ -43,5 +49,8 @@
                 {{ $slot }}
             </div>
         </div>
-    </body>
+        @endif
+        @include('partials.dev-reload')
+        @livewireScripts
+</body>
 </html>

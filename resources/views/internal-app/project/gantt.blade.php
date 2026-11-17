@@ -7,18 +7,18 @@
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4">
         <div class="flex items-center gap-2">
             <label class="text-xs font-semibold text-slate-500">Project</label>
-            <select onchange="if(this.value){(window.Alpine&&Alpine.store('spa'))?Alpine.store('spa').navigate(this.value):(location.href=this.value)}" class="min-w-[220px] rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <select onchange="if(this.value){location.href=this.value}" class="min-w-[220px] rounded-xl border border-slate-200 px-3 py-2 text-sm">
                 <option value="">— Pilih Project —</option>
                 @foreach($projects as $p)
                 <option value="{{ route('internal.projects.gantt', ['project_id'=>$p->id]) }}" @selected($project && $project->id==$p->id)>{{ $p->name }}</option>
                 @endforeach
             </select>
         </div>
-        <a href="{{ route('internal.projects.index') }}" @click.prevent="$store.spa.navigate($el.href)" class="text-xs font-semibold text-blue-600"><i class="fa-solid fa-plus mr-1"></i>Buat Project</a>
+        <a href="{{ route('internal.projects.index') }}" class="text-xs font-semibold text-blue-600"><i class="fa-solid fa-plus mr-1"></i>Buat Project</a>
     </div>
     <div class="overflow-x-auto p-4">
         @if($projects->isEmpty())
-        <p class="py-12 text-center text-sm text-slate-400">Belum ada project. <a href="{{ route('internal.projects.index') }}" @click.prevent="$store.spa.navigate($el.href)" class="font-semibold text-blue-600">Buat project</a> terlebih dahulu.</p>
+        <p class="py-12 text-center text-sm text-slate-400">Belum ada project. <a href="{{ route('internal.projects.index') }}" class="font-semibold text-blue-600">Buat project</a> terlebih dahulu.</p>
         @else
         <div id="gantt-wrap" class="min-w-[800px]">
             <div id="gantt-head" class="mb-2 grid text-[10px] font-semibold text-slate-400"></div>

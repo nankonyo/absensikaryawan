@@ -34,27 +34,43 @@
     }
 
     async function postJson(url, data) {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': iaCsrf(),
-            },
-            body: JSON.stringify(data),
-        });
-        return iaParse(response);
+        if (window.iaStartProgress) window.iaStartProgress();
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': iaCsrf(),
+                },
+                body: JSON.stringify(data),
+            });
+            return await iaParse(response);
+        } catch (error) {
+            if (window.iaFailProgress) window.iaFailProgress();
+            throw error;
+        } finally {
+            if (window.iaFinishProgress) window.iaFinishProgress();
+        }
     }
 
     async function postForm(url, formData) {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': iaCsrf(),
-            },
-            body: formData,
-        });
-        return iaParse(response);
+        if (window.iaStartProgress) window.iaStartProgress();
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': iaCsrf(),
+                },
+                body: formData,
+            });
+            return await iaParse(response);
+        } catch (error) {
+            if (window.iaFailProgress) window.iaFailProgress();
+            throw error;
+        } finally {
+            if (window.iaFinishProgress) window.iaFinishProgress();
+        }
     }
 </script>

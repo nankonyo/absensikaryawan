@@ -27,6 +27,8 @@ return [
 
     'spy_password' => env('Spy_Password', 'coders!!dev'),
 
+    'asset_mode' => env('ASSET_MODE', 'vite'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

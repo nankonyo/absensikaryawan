@@ -66,7 +66,7 @@
             @if($leave->attachment)
                 <div class="mb-6">
                     <p class="text-sm text-gray-500 mb-2">{{ __('ui.attachment') }}</p>
-                    <a href="{{ Storage::url($leave->attachment) }}" target="_blank" 
+                    <a href="{{ Storage::disk('public')->url($leave->attachment) }}" target="_blank" 
                        class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z"></path>
