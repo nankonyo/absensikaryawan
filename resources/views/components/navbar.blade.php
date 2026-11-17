@@ -64,14 +64,44 @@
                 </div>
             </div>
 
-            {{-- Language switcher --}}
-            <label for="locale-switcher" class="sr-only">{{ __('ui.language') }}</label>
-            <select id="locale-switcher"
-                    onchange="window.location.href = this.value"
-                    class="hidden rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-xs font-semibold text-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 sm:block">
-                <option value="{{ route('locale.switch', 'id') }}" @selected(app()->getLocale() === 'id')>ID</option>
-                <option value="{{ route('locale.switch', 'en') }}" @selected(app()->getLocale() === 'en')>EN</option>
-            </select>
+            {{-- Language dropdown --}}
+            <div x-data="{ langOpen: false }" class="relative">
+                <button type="button" @click="langOpen = !langOpen" @keydown.escape.window="langOpen = false"
+                        class="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+                        aria-label="{{ __('ui.language') }}">
+                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3.6 9h16.8M3.6 15h16.8M12 3a15.3 15.3 0 010 18M12 3a15.3 15.3 0 000 18"></path>
+                    </svg>
+                    <span>{{ strtoupper(app()->getLocale()) }}</span>
+                    <svg class="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+
+                <div x-show="langOpen" x-cloak @click.outside="langOpen = false"
+                     class="absolute right-0 mt-2 w-40 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl">
+                    <a href="{{ route('locale.switch', 'id') }}" data-no-spa
+                       @click="langOpen = false"
+                       class="flex items-center justify-between px-3 py-2 text-xs font-semibold {{ app()->getLocale() === 'id' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50' }}">
+                        <span>{{ __('ui.indonesian') }}</span>
+                        @if(app()->getLocale() === 'id')
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        @endif
+                    </a>
+                    <a href="{{ route('locale.switch', 'en') }}" data-no-spa
+                       @click="langOpen = false"
+                       class="flex items-center justify-between px-3 py-2 text-xs font-semibold {{ app()->getLocale() === 'en' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50' }}">
+                        <span>{{ __('ui.english') }}</span>
+                        @if(app()->getLocale() === 'en')
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        @endif
+                    </a>
+                </div>
+            </div>
 
             {{-- User menu --}}
             <div x-data="{ open: false }" class="relative">

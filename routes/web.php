@@ -93,6 +93,7 @@ Route::middleware(['auth', 'role:direksi,admin'])->prefix('admin')->name('admin.
 
     // Settings
     Route::get('/settings', [App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
+    Route::get('/api-docs', [App\Http\Controllers\Admin\ApiDocumentationController::class, 'index'])->name('api-docs.index');
     Route::post('/settings', [App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
     Route::post('/settings/test-email', [App\Http\Controllers\Admin\SettingController::class, 'testEmail'])->name('settings.test-email');
     Route::get('/settings/users', [App\Http\Controllers\Admin\SettingController::class, 'users'])->name('settings.users');

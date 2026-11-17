@@ -241,4 +241,11 @@
         </svg>
         <span>Pengaturan</span>
     </x-nav-link>
+
+    <x-nav-link href="{{ route('admin.api-docs.index') }}" :active="request()->routeIs('admin.api-docs.*')">
+        <svg class="{{ $icon }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+        </svg>
+        <span>Dokumentasi API Mobile</span>
+    </x-nav-link>
 </div>
