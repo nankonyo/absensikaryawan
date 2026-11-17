@@ -92,7 +92,10 @@ Route::middleware(['auth', 'role:direksi,admin'])->prefix('admin')->name('admin.
     Route::post('/reports/attendance', [App\Http\Controllers\Admin\ReportController::class, 'attendance'])->name('reports.attendance');
 
     // Settings
-    Route::get('/settings', App\Livewire\Settings\SettingsPage::class)->name('settings.index');
+    Route::get('/settings', [App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+    Route::post('/settings/test-email', [App\Http\Controllers\Admin\SettingController::class, 'testEmail'])->name('settings.test-email');
+    Route::get('/settings/users', [App\Http\Controllers\Admin\SettingController::class, 'users'])->name('settings.users');
 
     // Audit logs
     Route::get('/audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
