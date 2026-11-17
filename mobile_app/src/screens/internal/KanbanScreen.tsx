@@ -32,7 +32,7 @@ export const KanbanScreen = () => {
   }, [load]);
 
   return (
-    <Screen scroll={false}>
+    <Screen scroll={false} back>
       <View style={{ padding: spacing.lg, gap: spacing.md }}>
         <Text style={styles.title}>Kanban Board</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>

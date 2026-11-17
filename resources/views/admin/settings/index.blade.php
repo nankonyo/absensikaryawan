@@ -125,6 +125,7 @@
                 </div>
 
                 <x-ia.switch label="Face Recognition" description="Wajibkan verifikasi wajah saat presensi" x-model="form.face_recognition_enabled" />
+                <x-ia.switch label="Face Recognition Mobile" description="Aktifkan jika mobile sudah bisa menghitung skor wajah" x-model="form.mobile_face_recognition_enabled" />
 
                 <div class="space-y-1.5">
                     <label class="block text-sm font-semibold text-slate-700">Threshold Face Recognition (%)</label>
@@ -310,6 +311,7 @@
                     late_tolerance: initial.late_tolerance,
                     annual_leave_quota: initial.annual_leave_quota,
                     face_recognition_enabled: initial.face_recognition_enabled,
+                    mobile_face_recognition_enabled: initial.mobile_face_recognition_enabled,
                     face_recognition_threshold: initial.face_recognition_threshold,
                     latitude: initial.latitude,
                     longitude: initial.longitude,

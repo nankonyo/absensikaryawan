@@ -53,7 +53,7 @@ export const ProjectDetailScreen = () => {
 
   if (loading) {
     return (
-      <Screen>
+      <Screen back>
         <ActivityIndicator color={colors.primary} />
       </Screen>
     );
@@ -61,14 +61,14 @@ export const ProjectDetailScreen = () => {
 
   if (!project) {
     return (
-      <Screen>
+      <Screen back>
         <EmptyState message="Project tidak ditemukan." />
       </Screen>
     );
   }
 
   return (
-    <Screen>
+    <Screen back>
       <Card style={{ gap: spacing.sm }}>
         <View style={styles.rowBetween}>
           <Text style={styles.title}>{project.name}</Text>

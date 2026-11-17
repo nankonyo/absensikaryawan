@@ -33,6 +33,8 @@ class SettingController extends Controller
             'late_tolerance' => (int) $value('late_tolerance', 15),
             'annual_leave_quota' => (int) $value('annual_leave_quota', 12),
             'face_recognition_enabled' => filter_var($value('face_recognition_enabled', false), FILTER_VALIDATE_BOOLEAN),
+            'mobile_face_recognition_enabled' => filter_var($value('mobile_face_recognition_enabled', false), FILTER_VALIDATE_BOOLEAN),
+            'mobile_face_recognition_enabled' => filter_var($value('mobile_face_recognition_enabled', false), FILTER_VALIDATE_BOOLEAN),
             'face_recognition_threshold' => (int) $value('face_recognition_threshold', 80),
             'latitude' => (float) ($office->latitude ?? -6.2),
             'longitude' => (float) ($office->longitude ?? 106.816666),
@@ -71,6 +73,7 @@ class SettingController extends Controller
             'late_tolerance' => ['required', 'integer', 'min:0', 'max:180'],
             'annual_leave_quota' => ['required', 'integer', 'min:1', 'max:365'],
             'face_recognition_enabled' => ['boolean'],
+            'mobile_face_recognition_enabled' => ['boolean'],
             'face_recognition_threshold' => ['required', 'integer', 'min:0', 'max:100'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
@@ -110,6 +113,7 @@ class SettingController extends Controller
         }
 
         Setting::set('face_recognition_enabled', $request->boolean('face_recognition_enabled'), 'boolean');
+        Setting::set('mobile_face_recognition_enabled', $request->boolean('mobile_face_recognition_enabled'), 'boolean');
         Setting::set('project_manager_id', $data['project_manager_id'] ?? null, 'integer');
 
         if (! empty($data['mail_password'])) {

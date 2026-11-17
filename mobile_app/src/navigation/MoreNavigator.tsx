@@ -10,6 +10,7 @@ const Stack = createNativeStackNavigator<MoreStackParamList>();
 export const MoreNavigator = () => (
   <Stack.Navigator
     screenOptions={{
+      headerShown: false,
       headerStyle: { backgroundColor: colors.primary },
       headerTintColor: '#fff',
       headerTitleStyle: { fontWeight: '700' },

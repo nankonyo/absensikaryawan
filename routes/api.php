@@ -119,5 +119,6 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
     Route::prefix('profile')->group(function () {
         Route::get('/', [ProfileController::class, 'show']);
         Route::put('/', [ProfileController::class, 'update']);
+        Route::post('/', [ProfileController::class, 'update']);
     });
 });

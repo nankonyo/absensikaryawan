@@ -292,7 +292,7 @@ export const AdminResourceScreen = () => {
   };
 
   return (
-    <Screen>
+    <Screen back>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{title}</Text>
@@ -412,6 +412,108 @@ export const AdminResourceScreen = () => {
             <ScrollView contentContainerStyle={{ gap: spacing.md }} showsVerticalScrollIndicator={false}>
               {(schema?.fields || []).map((field) => {
                 if (field.create_only && editing) return null;
+
+                if (field.type === 'file') {
+                  const selected = form[field.name];
+                  const existingUrl = editing?.avatar_url && field.name === 'avatar' ? editing.avatar_url : null;
+
+                  return (
+                    <View key={field.name} style={{ gap: 6 }}>
+                      <Text style={styles.fieldLabel}>{field.label}</Text>
+
+                      {isFileValue(selected) && field.accept === 'image' ? (
+                        <Image source={{ uri: selected.uri }} style={styles.avatarPreview} />
+                      ) : isFileValue(selected) ? (
+                        <Text style={styles.muted}>Dipilih: {selected.name}</Text>
+                      ) : existingUrl ? (
+                        <Image source={{ uri: existingUrl }} style={styles.avatarPreview} />
+                      ) : (
+                        <Text style={styles.muted}>
+                          {field.accept === 'image' ? 'Belum ada foto dipilih.' : 'Belum ada file dipilih.'}
+                        </Text>
+                      )}
+
+                      <TouchableOpacity style={styles.fileButton} onPress={() => pickFile(field)}>
+                        <Ionicons
+                          name={field.accept === 'image' ? 'camera-outline' : 'cloud-upload-outline'}
+                          size={18}
+                          color={colors.primary}
+                        />
+                        <Text style={styles.fileButtonText}>
+                          {field.accept === 'image' ? 'Kamera / Galeri' : 'Pilih File'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }
+
+                if (field.type === 'attributes') {
+                  const attributes = (field.options || []) as {
+                    id: number;
+                    label: string;
+                    type: string;
+                    options: string[];
+                  }[];
+
+                  return (
+                    <View key={field.name} style={{ gap: spacing.md }}>
+                      <Text style={styles.fieldLabel}>{field.label}</Text>
+
+                      {attributes.length === 0 ? (
+                        <Text style={styles.muted}>Belum ada atribut aktif.</Text>
+                      ) : null}
+
+                      {attributes.map((attribute) => {
+                        const value = form.attributes?.[attribute.id] ?? '';
+                        const update = (nextValue: string) =>
+                          setForm({
+                            ...form,
+                            attributes: { ...(form.attributes || {}), [attribute.id]: nextValue },
+                          });
+
+                        if (attribute.type === 'select' && Array.isArray(attribute.options)) {
+                          return (
+                            <View key={attribute.id} style={{ gap: 6 }}>
+                              <Text style={styles.fieldLabel}>{attribute.label}</Text>
+                              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                                <TouchableOpacity
+                                  onPress={() => update('')}
+                                  style={[styles.chip, value === '' && styles.chipActive]}
+                                >
+                                  <Text style={[styles.chipText, value === '' && styles.chipTextActive]}>-</Text>
+                                </TouchableOpacity>
+                                {attribute.options.map((option) => {
+                                  const active = String(value) === String(option);
+                                  return (
+                                    <TouchableOpacity
+                                      key={`${attribute.id}-${option}`}
+                                      onPress={() => update(option)}
+                                      style={[styles.chip, active && styles.chipActive]}
+                                    >
+                                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{option}</Text>
+                                    </TouchableOpacity>
+                                  );
+                                })}
+                              </ScrollView>
+                            </View>
+                          );
+                        }
+
+                        return (
+                          <Field
+                            key={attribute.id}
+                            label={attribute.label}
+                            value={String(value)}
+                            onChangeText={update}
+                            placeholder={attribute.type === 'date' ? 'YYYY-MM-DD' : undefined}
+                            multiline={attribute.type === 'textarea'}
+                            style={attribute.type === 'textarea' ? { minHeight: 80, textAlignVertical: 'top' } : undefined}
+                          />
+                        );
+                      })}
+                    </View>
+                  );
+                }
 
                 if (field.type === 'switch') {
                   return (

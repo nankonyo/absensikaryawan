@@ -42,7 +42,7 @@ export const ContentsScreen = () => {
   };
 
   return (
-    <Screen>
+    <Screen back>
       <View>
         <Text style={styles.title}>Konten</Text>
         <Text style={styles.muted}>Video tutorial, dokumentasi, dan pengumuman.</Text>

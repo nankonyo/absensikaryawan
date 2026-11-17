@@ -120,7 +120,10 @@ export const contentApi = {
 
 export const profileApi = {
   show: () => api.get<{ user: User }>('/profile'),
-  update: (payload: { name: string; phone?: string }) => api.put<{ user: User }>('/profile', payload),
+  update: (payload: { name: string; phone?: string } | FormData) =>
+    payload instanceof FormData
+      ? api.post<{ user: User }>('/profile', payload)
+      : api.put<{ user: User }>('/profile', payload),
 };
 
 export const adminApi = {

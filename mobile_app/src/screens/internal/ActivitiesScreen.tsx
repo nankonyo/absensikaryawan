@@ -62,7 +62,7 @@ export const ActivitiesScreen = () => {
   };
 
   return (
-    <Screen>
+    <Screen back>
       <View style={styles.rowBetween}>
         <View>
           <Text style={styles.title}>Aktivitas</Text>

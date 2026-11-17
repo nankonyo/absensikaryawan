@@ -32,7 +32,7 @@ export const ProjectsScreen = () => {
   }, [load]);
 
   return (
-    <Screen>
+    <Screen back>
       <View>
         <Text style={styles.title}>Project</Text>
         <Text style={styles.muted}>Daftar project dan progres terbaru.</Text>

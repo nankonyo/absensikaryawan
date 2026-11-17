@@ -59,6 +59,7 @@ class AttendanceController extends Controller
     public function checkIn(Request $request, AttendanceService $service)
     {
         $data = $this->validated($request);
+        $data['skip_face_verification'] = ! Setting::get('mobile_face_recognition_enabled', false);
 
         $result = $service->checkIn($request->user(), $data);
 
@@ -68,6 +69,7 @@ class AttendanceController extends Controller
     public function checkOut(Request $request, AttendanceService $service)
     {
         $data = $this->validated($request);
+        $data['skip_face_verification'] = ! Setting::get('mobile_face_recognition_enabled', false);
 
         $result = $service->checkOut($request->user(), $data);
 

@@ -34,7 +34,7 @@ export const GanttScreen = () => {
   const totalDays = min && max ? Math.max(1, Math.ceil((max.getTime() - min.getTime()) / 86400000) + 1) : 1;
 
   return (
-    <Screen>
+    <Screen back>
       <View>
         <Text style={styles.title}>Gantt Chart</Text>
         <Text style={styles.muted}>Timeline task project berdasarkan tanggal.</Text>

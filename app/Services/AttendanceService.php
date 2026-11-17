@@ -53,8 +53,9 @@ class AttendanceService
         $photoPath = null;
         $faceScore = null;
 
-        // Validate Face Recognition (if enabled) using the score computed in the browser
-        if ($this->faceService->isEnabled()) {
+        // Validate Face Recognition (if enabled) using the score computed in the browser.
+        // Mobile API may skip this when server-side face matching is not available.
+        if ($this->faceService->isEnabled() && empty($data['skip_face_verification'])) {
             if (!$user->avatar) {
                 return [
                     'success' => false,
@@ -151,8 +152,9 @@ class AttendanceService
         $photoPath = null;
         $faceScore = null;
 
-        // Validate Face Recognition (if enabled) using the score computed in the browser
-        if ($this->faceService->isEnabled()) {
+        // Validate Face Recognition (if enabled) using the score computed in the browser.
+        // Mobile API may skip this when server-side face matching is not available.
+        if ($this->faceService->isEnabled() && empty($data['skip_face_verification'])) {
             if (!$user->avatar) {
                 return [
                     'success' => false,
