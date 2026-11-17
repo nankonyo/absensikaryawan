@@ -132,6 +132,8 @@ export const adminApi = {
   update: (resource: string, id: number, payload: Record<string, unknown>) =>
     api.put(`/admin/resources/${resource}/${id}`, payload),
   remove: (resource: string, id: number) => api.delete(`/admin/resources/${resource}/${id}`),
+  verifyAttendance: (id: number, status: 'valid' | 'invalid' | 'pending', notes?: string) =>
+    api.post(`/admin/resources/attendances/${id}/verify`, { status, notes }),
 };
 
 export const appApi = {

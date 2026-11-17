@@ -111,6 +111,7 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
         Route::get('{resource}/schema', [AdminResourceController::class, 'schema']);
         Route::get('{resource}', [AdminResourceController::class, 'index']);
         Route::post('{resource}', [AdminResourceController::class, 'store']);
+        Route::post('attendances/{id}/verify', [AdminResourceController::class, 'verifyAttendance']);
         Route::put('{resource}/{id}', [AdminResourceController::class, 'update']);
         Route::delete('{resource}/{id}', [AdminResourceController::class, 'destroy']);
     });

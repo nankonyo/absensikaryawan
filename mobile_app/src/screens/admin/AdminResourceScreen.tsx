@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/Screen';
 import { Badge, Card, EmptyState } from '../../components/ui';
 import { Field } from '../../components/Field';
-import { adminApi } from '../../api/endpoints';
+import { adminApi, approvalApi } from '../../api/endpoints';
 import { apiMessage } from '../../api/client';
 import type { MoreStackParamList } from '../../navigation/types';
 import { colors, radius, spacing, statusColor } from '../../theme';
@@ -93,7 +93,7 @@ export const AdminResourceScreen = () => {
     if (schema?.read_only) return;
     const initial: Record<string, any> = {};
     (schema?.fields || []).forEach((field) => {
-      initial[field.name] = item[field.name] ?? (field.type === 'switch' ? false : '');
+      initial[field.name] = field.type === 'password' ? '' : item[field.name] ?? (field.type === 'switch' ? false : '');
     });
     setEditing(item);
     setForm(initial);
@@ -127,6 +127,27 @@ export const AdminResourceScreen = () => {
       Alert.alert('Gagal', apiMessage(error));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const verifyAttendance = async (item: AdminItem, status: 'valid' | 'invalid') => {
+    try {
+      await adminApi.verifyAttendance(item.id, status);
+      await load(page, search);
+      Alert.alert('Berhasil', status === 'valid' ? 'Presensi disetujui.' : 'Presensi ditolak.');
+    } catch (error) {
+      Alert.alert('Gagal', apiMessage(error));
+    }
+  };
+
+  const actLeave = async (item: AdminItem, action: 'approve' | 'reject') => {
+    try {
+      if (action === 'approve') await approvalApi.approve(item.id);
+      else await approvalApi.reject(item.id);
+      await load(page, search);
+      Alert.alert('Berhasil', action === 'approve' ? 'Cuti disetujui.' : 'Cuti ditolak.');
+    } catch (error) {
+      Alert.alert('Gagal', apiMessage(error));
     }
   };
 
@@ -197,6 +218,28 @@ export const AdminResourceScreen = () => {
               ) : null}
             </View>
             {item.subtitle ? <Text style={styles.muted}>{item.subtitle}</Text> : null}
+
+            {resource === 'attendance-verifications' && String(item.raw?.status ?? item.status ?? '') === 'pending' ? (
+              <View style={styles.actions}>
+                <TouchableOpacity onPress={() => verifyAttendance(item, 'valid')}>
+                  <Text style={styles.edit}>Setujui</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => verifyAttendance(item, 'invalid')}>
+                  <Text style={styles.delete}>Tolak</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {resource === 'leaves' && String(item.raw?.status ?? item.status ?? '') === 'pending' ? (
+              <View style={styles.actions}>
+                <TouchableOpacity onPress={() => actLeave(item, 'approve')}>
+                  <Text style={styles.edit}>Setujui</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => actLeave(item, 'reject')}>
+                  <Text style={styles.delete}>Tolak</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
             {!schema?.read_only ? (
               <View style={styles.actions}>

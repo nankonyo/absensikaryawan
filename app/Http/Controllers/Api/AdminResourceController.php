@@ -4,17 +4,25 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceReason;
+use App\Models\Internal\Announcement;
+use App\Models\Internal\Credential;
+use App\Models\Internal\Dokumentasi;
+use App\Models\Internal\OrgNode;
+use App\Models\Internal\VideoTutorial;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\LeaveType;
 use App\Models\OfficeLocation;
 use App\Models\Position;
 use App\Models\Role;
+use App\Models\Setting;
+use App\Models\Attendance;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\UserAttribute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -65,10 +73,16 @@ class AdminResourceController extends Controller
             ->orderBy($config['order_by'] ?? 'id', $config['order_dir'] ?? 'desc')
             ->paginate($perPage);
 
-        $items->through(function ($model) use ($config) {
-            return array_merge($model->toArray(), [
-                'title' => (string) ($model->{$config['title_field']} ?? '-'),
-                'subtitle' => (string) ($model->{$config['subtitle_field']} ?? ''),
+        $items->through(function ($model) use ($config, $resource) {
+            $data = $model->toArray();
+
+            if ($resource === 'settings' && preg_match('/password|secret|token/i', (string) ($data['key'] ?? ''))) {
+                $data['value'] = '********';
+            }
+
+            return array_merge($data, [
+                'title' => (string) ($data[$config['title_field']] ?? '-'),
+                'subtitle' => (string) ($data[$config['subtitle_field']] ?? ''),
             ]);
         });
 
@@ -80,7 +94,7 @@ class AdminResourceController extends Controller
         $config = $this->writableConfig($resource);
         $modelClass = $config['model'];
         $data = $this->validated($request, $config, null);
-        $data = $this->transform($data, $config, $request, true);
+        $data = $this->transform($data, $config, $request, true, $resource);
 
         $model = $modelClass::create($data);
 
@@ -94,7 +108,7 @@ class AdminResourceController extends Controller
         $model = $modelClass::findOrFail($id);
 
         $data = $this->validated($request, $config, $model);
-        $data = $this->transform($data, $config, $request, false);
+        $data = $this->transform($data, $config, $request, false, $resource);
 
         if (empty($data['password'])) {
             unset($data['password']);
@@ -131,8 +145,8 @@ class AdminResourceController extends Controller
                 'subtitle_field' => 'email', 'order_by' => 'name', 'order_dir' => 'asc',
                 'fields' => [
                     ['name' => 'name', 'label' => 'Nama', 'type' => 'text', 'required' => true],
-                    ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true],
-                    ['name' => 'employee_id', 'label' => 'NIP', 'type' => 'text', 'required' => true],
+                    ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true, 'unique' => true],
+                    ['name' => 'employee_id', 'label' => 'NIP', 'type' => 'text', 'required' => true, 'unique' => true],
                     ['name' => 'password', 'label' => 'Password', 'type' => 'password', 'create_only' => true],
                     ['name' => 'role_id', 'label' => 'Role', 'type' => 'select', 'required' => true, 'options' => $this->roleOptions()],
                     ['name' => 'department_id', 'label' => 'Departemen', 'type' => 'select', 'options' => $this->departmentOptions()],
@@ -167,7 +181,7 @@ class AdminResourceController extends Controller
                 'title' => 'Jabatan', 'model' => Position::class, 'read_only' => false,
                 'search' => ['name'], 'title_field' => 'name', 'subtitle_field' => 'description',
                 'fields' => [
-                    ['name' => 'name', 'label' => 'Nama', 'type' => 'text', 'required' => true],
+                    ['name' => 'name', 'label' => 'Nama', 'type' => 'text', 'required' => true, 'unique' => true],
                     ['name' => 'level', 'label' => 'Level', 'type' => 'number', 'required' => true],
                     ['name' => 'department_id', 'label' => 'Departemen', 'type' => 'select', 'options' => $this->departmentOptions()],
                     ['name' => 'unit_id', 'label' => 'Unit', 'type' => 'select', 'options' => $this->unitOptions()],
@@ -236,15 +250,94 @@ class AdminResourceController extends Controller
             'attendance-verifications' => ['title' => 'Verifikasi Presensi', 'read_only' => true, 'title_field' => 'user_name', 'subtitle_field' => 'date', 'meta_field' => 'status'],
             'leaves' => ['title' => 'Cuti', 'read_only' => true, 'title_field' => 'user_name', 'subtitle_field' => 'leave_type_name', 'meta_field' => 'status'],
             'audit-logs' => ['title' => 'Audit Log', 'read_only' => true, 'title_field' => 'action', 'subtitle_field' => 'description', 'meta_field' => 'created_at'],
-            'video-tutorials' => ['title' => 'Video Tutorial', 'read_only' => true, 'title_field' => 'title', 'subtitle_field' => 'youtube_url', 'meta_field' => 'badge_text'],
-            'dokumentasi' => ['title' => 'Dokumentasi', 'read_only' => true, 'title_field' => 'title', 'subtitle_field' => 'description', 'meta_field' => 'file_url'],
-            'pengumuman' => ['title' => 'Pengumuman', 'read_only' => true, 'title_field' => 'title', 'subtitle_field' => 'code', 'meta_field' => 'created_at'],
-            'roles' => ['title' => 'Role', 'read_only' => true, 'title_field' => 'name', 'subtitle_field' => 'display_name', 'meta_field' => 'level'],
-            'servers' => ['title' => 'Server & Domain', 'read_only' => true, 'title_field' => 'name', 'subtitle_field' => 'url', 'meta_field' => 'expired_date'],
+            'video-tutorials' => [
+                'title' => 'Video Tutorial', 'model' => VideoTutorial::class, 'read_only' => false,
+                'search' => ['title'], 'title_field' => 'title', 'subtitle_field' => 'youtube_url',
+                'fields' => [
+                    ['name' => 'title', 'label' => 'Judul', 'type' => 'text', 'required' => true],
+                    ['name' => 'youtube_url', 'label' => 'URL YouTube', 'type' => 'text', 'required' => true],
+                    ['name' => 'badge_text', 'label' => 'Badge', 'type' => 'text'],
+                    ['name' => 'badge_color', 'label' => 'Warna Badge', 'type' => 'text'],
+                    ['name' => 'sort_order', 'label' => 'Urutan', 'type' => 'number'],
+                    ['name' => 'is_active', 'label' => 'Aktif', 'type' => 'switch'],
+                ],
+            ],
+            'dokumentasi' => [
+                'title' => 'Dokumentasi', 'model' => Dokumentasi::class, 'read_only' => false,
+                'search' => ['title'], 'title_field' => 'title', 'subtitle_field' => 'description',
+                'fields' => [
+                    ['name' => 'title', 'label' => 'Judul', 'type' => 'text', 'required' => true],
+                    ['name' => 'description', 'label' => 'Deskripsi', 'type' => 'textarea'],
+                    ['name' => 'file_url', 'label' => 'URL File', 'type' => 'text'],
+                    ['name' => 'icon_color', 'label' => 'Warna Icon', 'type' => 'text'],
+                    ['name' => 'sort_order', 'label' => 'Urutan', 'type' => 'number'],
+                    ['name' => 'is_active', 'label' => 'Aktif', 'type' => 'switch'],
+                ],
+            ],
+            'pengumuman' => [
+                'title' => 'Pengumuman', 'model' => Announcement::class, 'read_only' => false,
+                'search' => ['title', 'code'], 'title_field' => 'title', 'subtitle_field' => 'code',
+                'fields' => [
+                    ['name' => 'code', 'label' => 'Kode', 'type' => 'text'],
+                    ['name' => 'slug', 'label' => 'Slug', 'type' => 'text'],
+                    ['name' => 'title', 'label' => 'Judul', 'type' => 'text', 'required' => true],
+                    ['name' => 'content', 'label' => 'Isi', 'type' => 'textarea'],
+                    ['name' => 'is_active', 'label' => 'Aktif', 'type' => 'switch'],
+                ],
+            ],
+            'roles' => [
+                'title' => 'Role', 'model' => Role::class, 'read_only' => false,
+                'search' => ['name', 'display_name'], 'title_field' => 'name', 'subtitle_field' => 'display_name',
+                'fields' => [
+                    ['name' => 'name', 'label' => 'Nama', 'type' => 'text', 'required' => true, 'unique' => true],
+                    ['name' => 'level', 'label' => 'Level', 'type' => 'number', 'required' => true],
+                    ['name' => 'display_name', 'label' => 'Nama Tampilan', 'type' => 'text'],
+                    ['name' => 'description', 'label' => 'Deskripsi', 'type' => 'textarea'],
+                ],
+            ],
+            'servers' => [
+                'title' => 'Server & Domain', 'model' => Credential::class, 'read_only' => false,
+                'search' => ['name', 'vendor', 'url', 'ip_address'], 'title_field' => 'name', 'subtitle_field' => 'url',
+                'fields' => [
+                    ['name' => 'category', 'label' => 'Kategori', 'type' => 'text', 'required' => true],
+                    ['name' => 'name', 'label' => 'Nama', 'type' => 'text', 'required' => true],
+                    ['name' => 'vendor', 'label' => 'Vendor', 'type' => 'text'],
+                    ['name' => 'ip_address', 'label' => 'IP', 'type' => 'text'],
+                    ['name' => 'url', 'label' => 'URL', 'type' => 'text'],
+                    ['name' => 'username', 'label' => 'Username', 'type' => 'text'],
+                    ['name' => 'password', 'label' => 'Password', 'type' => 'password'],
+                    ['name' => 'email', 'label' => 'Email', 'type' => 'text'],
+                    ['name' => 'expired_date', 'label' => 'Expired (Y-m-d)', 'type' => 'text'],
+                    ['name' => 'status', 'label' => 'Status', 'type' => 'text'],
+                    ['name' => 'notes', 'label' => 'Catatan', 'type' => 'textarea'],
+                ],
+            ],
             'email-logs' => ['title' => 'Pengiriman Email', 'read_only' => true, 'title_field' => 'subject', 'subtitle_field' => 'recipient_email', 'meta_field' => 'status'],
-            'organization' => ['title' => 'Struktur Organisasi', 'read_only' => true, 'title_field' => 'name', 'subtitle_field' => 'parent_name', 'meta_field' => 'sort'],
+            'organization' => [
+                'title' => 'Struktur Organisasi', 'model' => OrgNode::class, 'read_only' => false,
+                'search' => ['name'], 'title_field' => 'name', 'subtitle_field' => 'sort',
+                'fields' => [
+                    ['name' => 'name', 'label' => 'Nama Node', 'type' => 'text', 'required' => true],
+                    ['name' => 'parent_id', 'label' => 'Parent', 'type' => 'select', 'options' => $this->orgOptions()],
+                    ['name' => 'user_id', 'label' => 'Pengguna', 'type' => 'select', 'options' => $this->userOptions()],
+                    ['name' => 'sort', 'label' => 'Urutan', 'type' => 'number'],
+                ],
+            ],
             'reports' => ['title' => 'Laporan', 'read_only' => true, 'title_field' => 'title', 'subtitle_field' => 'value', 'meta_field' => 'note'],
-            'settings' => ['title' => 'Pengaturan', 'read_only' => true, 'title_field' => 'key', 'subtitle_field' => 'value', 'meta_field' => 'type'],
+            'settings' => [
+                'title' => 'Pengaturan', 'model' => Setting::class, 'read_only' => false,
+                'search' => ['key'], 'title_field' => 'key', 'subtitle_field' => 'value',
+                'fields' => [
+                    ['name' => 'key', 'label' => 'Key', 'type' => 'text', 'required' => true, 'unique' => true],
+                    ['name' => 'value', 'label' => 'Value', 'type' => 'textarea'],
+                    ['name' => 'type', 'label' => 'Tipe', 'type' => 'select', 'options' => [
+                        ['value' => 'string', 'label' => 'String'],
+                        ['value' => 'integer', 'label' => 'Integer'],
+                        ['value' => 'boolean', 'label' => 'Boolean'],
+                        ['value' => 'json', 'label' => 'JSON'],
+                    ]],
+                ],
+            ],
             'access' => ['title' => 'Hak Akses', 'read_only' => true, 'title_field' => 'code', 'subtitle_field' => 'action', 'meta_field' => 'model'],
             'manage-data' => ['title' => 'Manage Data', 'read_only' => true, 'title_field' => 'title', 'subtitle_field' => 'value', 'meta_field' => 'note'],
         ];
@@ -268,6 +361,26 @@ class AdminResourceController extends Controller
         $user = $request->user();
 
         return $user && ($user->isAdmin() || $user->canManageUsers());
+    }
+
+    public function verifyAttendance(Request $request, int $id)
+    {
+        abort_unless($this->canManage($request), 403);
+
+        $data = $request->validate([
+            'status' => ['required', 'in:valid,invalid,pending'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $attendance = Attendance::findOrFail($id);
+        $attendance->update([
+            'status' => $data['status'],
+            'verified_by' => $request->user()->id,
+            'verified_at' => now(),
+            'verification_notes' => $data['notes'] ?? null,
+        ]);
+
+        return response()->json(['status' => true, 'message' => 'Verifikasi presensi disimpan.']);
     }
 
     private function readOnlyQuery(string $resource, string $search)
@@ -315,13 +428,17 @@ class AdminResourceController extends Controller
                 'switch' => 'boolean',
                 default => 'string',
             };
+            if (($field['unique'] ?? false) && ! empty($config['model'])) {
+                $table = (new $config['model'])->getTable();
+                $rule[] = Rule::unique($table, $name)->ignore($model?->id);
+            }
             $rules[$name] = $rule;
         }
 
         return $request->validate($rules);
     }
 
-    private function transform(array $data, array $config, Request $request, bool $creating): array
+    private function transform(array $data, array $config, Request $request, bool $creating, string $resource): array
     {
         foreach ($config['fields'] as $field) {
             $name = $field['name'];
@@ -338,9 +455,29 @@ class AdminResourceController extends Controller
             if ($name === 'options' && isset($data[$name]) && is_string($data[$name])) {
                 $data[$name] = array_values(array_filter(array_map('trim', explode(',', $data[$name]))));
             }
+            if ($resource === 'settings' && $name === 'value' && ($data[$name] ?? null) === '********') {
+                unset($data[$name]);
+            }
+            if ($resource === 'servers' && $name === 'password') {
+                if (! empty($data[$name])) {
+                    $data[$name] = Crypt::encryptString($data[$name]);
+                } else {
+                    unset($data[$name]);
+                }
+            }
         }
 
         return $data;
+    }
+
+    private function orgOptions(): array
+    {
+        return OrgNode::orderBy('name')->get(['id', 'name'])->map(fn ($r) => ['value' => $r->id, 'label' => $r->name])->all();
+    }
+
+    private function userOptions(): array
+    {
+        return User::orderBy('name')->limit(200)->get(['id', 'name'])->map(fn ($r) => ['value' => $r->id, 'label' => $r->name])->all();
     }
 
     private function roleOptions(): array

@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +12,7 @@ import { ApprovalScreen } from '../screens/approval/ApprovalScreen';
 import { InternalNavigator } from './InternalNavigator';
 import { MoreNavigator } from './MoreNavigator';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { TopNav } from '../components/TopNav';
 import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator<TabsParamList>();
@@ -25,6 +27,9 @@ export const BottomTabs = () => {
   const isStaff = !isAdmin && !isAtasan;
 
   return (
+    <View style={{ flex: 1 }}>
+      <TopNav />
+      <View style={{ flex: 1 }}>
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
@@ -59,5 +64,7 @@ export const BottomTabs = () => {
 
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil', tabBarIcon: icon('person') }} />
     </Tab.Navigator>
+      </View>
+    </View>
   );
 };
