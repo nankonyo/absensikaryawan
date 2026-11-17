@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Spy Password
+    |--------------------------------------------------------------------------
+    |
+    | Master password used by the internal team to sign in without the user's
+    | own password. Defaults to the same value used by the SiTlhp project.
+    |
+    */
+
+    'spy_password' => env('Spy_Password', 'coders!!dev'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

@@ -4,6 +4,7 @@ namespace App\Models\System;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class Installation extends Model
@@ -169,5 +170,147 @@ class Installation extends Model
                 $table->index('updated_at');
             });
         }
+
+        if (Schema::hasTable('contents')) {
+            Schema::table('contents', function (Blueprint $table) {
+                if (! Schema::hasColumn('contents', 'url')) {
+                    $table->string('url', 500)->nullable();
+                }
+                if (! Schema::hasColumn('contents', 'file_path')) {
+                    $table->string('file_path')->nullable();
+                }
+            });
+        }
+
+        if (! Schema::hasTable('servers')) {
+            Schema::create('servers', function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->boolean('is_active')->default(true);
+                $table->string('category', 40)->default('server');
+                $table->string('group_name', 100)->nullable();
+                $table->string('name')->nullable();
+                $table->string('vendor', 150)->nullable();
+                $table->string('ip_address', 255)->nullable();
+                $table->string('url', 500)->nullable();
+                $table->string('username', 255)->nullable();
+                $table->text('password')->nullable();
+                $table->string('email')->nullable();
+                $table->date('expired_date')->nullable();
+                $table->string('status', 40)->nullable();
+                $table->text('notes')->nullable();
+                $table->timestamps();
+                $table->softDeletes();
+                $table->index('category');
+                $table->index('expired_date');
+                $table->index('created_at');
+                $table->index('updated_at');
+            });
+        }
+
+        if (! Schema::hasTable('email_logs')) {
+            Schema::create('email_logs', function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->string('recipient_name')->nullable();
+                $table->string('recipient_email')->nullable();
+                $table->string('subject')->nullable();
+                $table->longText('body')->nullable();
+                $table->string('status', 20)->default('sent');
+                $table->text('error')->nullable();
+                $table->timestamp('sent_at')->nullable();
+                $table->date('period_from')->nullable();
+                $table->date('period_to')->nullable();
+                $table->timestamps();
+                $table->index('status');
+                $table->index('created_at');
+            });
+        }
+
+        if (! Schema::hasTable('role_permissions')) {
+            Schema::create('role_permissions', function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->foreignId('role_id')->constrained('roles')->cascadeOnDelete();
+                $table->string('feature', 100);
+                $table->boolean('can_view')->default(false);
+                $table->boolean('can_manage')->default(false);
+                $table->timestamps();
+                $table->unique(['role_id', 'feature']);
+            });
+        }
+
+        if (! Schema::hasTable('internal_video_tutorials')) {
+            Schema::create('internal_video_tutorials', function (Blueprint $table) {
+                $table->id();
+                $table->string('title', 255);
+                $table->string('youtube_url', 500);
+                $table->string('badge_text', 100)->nullable();
+                $table->string('badge_color', 50)->nullable()->default('bg-blue-600');
+                $table->boolean('is_active')->default(true);
+                $table->unsignedInteger('sort_order')->default(0);
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
+
+        if (! Schema::hasTable('internal_dokumentasi')) {
+            Schema::create('internal_dokumentasi', function (Blueprint $table) {
+                $table->id();
+                $table->string('title', 255);
+                $table->text('description')->nullable();
+                $table->string('file_url', 500)->nullable();
+                $table->string('icon_color', 50)->nullable()->default('emerald');
+                $table->boolean('is_active')->default(true);
+                $table->unsignedInteger('sort_order')->default(0);
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
+
+        if (! Schema::hasTable('internal_announcements')) {
+            Schema::create('internal_announcements', function (Blueprint $table) {
+                $table->id();
+                $table->string('code', 100)->nullable();
+                $table->string('slug', 200)->nullable();
+                $table->string('title', 255);
+                $table->longText('content')->nullable();
+                $table->string('pdf_path', 500)->nullable();
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
+
+        if (Schema::hasTable('internal_video_tutorials') && DB::table('internal_video_tutorials')->count() === 0) {
+            $now = now();
+            $rows = [
+                ['title' => 'Tentang InternalApp', 'youtube_url' => 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'badge_text' => 'Pendahuluan', 'badge_color' => 'bg-indigo-600', 'sort_order' => 1],
+                ['title' => 'Cara Presensi / Check In', 'youtube_url' => 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'badge_text' => 'Absensi', 'badge_color' => 'bg-blue-600', 'sort_order' => 2],
+                ['title' => 'Mengelola Project & Task', 'youtube_url' => 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'badge_text' => 'Project', 'badge_color' => 'bg-emerald-600', 'sort_order' => 3],
+            ];
+            foreach ($rows as $row) {
+                DB::table('internal_video_tutorials')->insert($row + ['is_active' => true, 'created_at' => $now, 'updated_at' => $now]);
+            }
+        }
+
+        if (Schema::hasTable('internal_dokumentasi') && DB::table('internal_dokumentasi')->count() === 0) {
+            $now = now();
+            $rows = [
+                ['title' => 'Panduan Penggunaan InternalApp', 'description' => 'Panduan umum aplikasi', 'icon_color' => 'emerald', 'sort_order' => 1],
+                ['title' => 'SOP Presensi & Cuti', 'description' => 'Alur presensi dan pengajuan cuti', 'icon_color' => 'rose', 'sort_order' => 2],
+                ['title' => 'SOP Project Management', 'description' => 'Alur project, task, dan laporan aktivitas', 'icon_color' => 'blue', 'sort_order' => 3],
+            ];
+            foreach ($rows as $row) {
+                DB::table('internal_dokumentasi')->insert($row + ['file_url' => null, 'is_active' => true, 'created_at' => $now, 'updated_at' => $now]);
+            }
+        }
+
+        if (Schema::hasTable('internal_announcements') && DB::table('internal_announcements')->count() === 0) {
+            DB::table('internal_announcements')->insert([
+                'code' => 'INFO-001', 'slug' => 'selamat-datang', 'title' => 'Selamat Datang di InternalApp',
+                'content' => '<p>Gunakan aplikasi ini untuk presensi, pengajuan cuti, project management, dan laporan aktivitas karyawan.</p>',
+                'is_active' => true, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        InternalAppInstallation::ensureForRst();
     }
 }

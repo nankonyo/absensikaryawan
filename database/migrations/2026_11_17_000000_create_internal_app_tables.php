@@ -13,11 +13,11 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('project_tasks');
-        Schema::dropIfExists('project_members');
-        Schema::dropIfExists('projects');
         Schema::dropIfExists('activities');
         Schema::dropIfExists('contents');
         Schema::dropIfExists('administrations');
+        Schema::dropIfExists('project_tasks');
+        Schema::dropIfExists('project_members');
+        Schema::dropIfExists('projects');
     }
 };

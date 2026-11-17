@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($rootUrl = config('app.url')) {
+            \Illuminate\Support\Facades\URL::forceRootUrl($rootUrl);
+        }
+
         try {
             $timezone = \App\Models\Setting::get('timezone');
 

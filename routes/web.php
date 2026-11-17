@@ -16,6 +16,9 @@ Route::get('/locale/{locale}', function (string $locale) {
     return back();
 })->name('locale.switch');
 
+Route::get('updating-schema', [App\Http\Controllers\SynchController::class, 'index'])
+    ->name('updating-schema.index');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -142,4 +145,5 @@ Route::middleware(['auth', 'role:general_manager,sekretaris,manager,supervisor,s
         ->parameters(['leaves' => 'leave']);
 });
 
+require __DIR__.'/internal-app.php';
 require __DIR__.'/auth.php';

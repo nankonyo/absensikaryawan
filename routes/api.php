@@ -1,20 +1,75 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\ActivityController;
+use App\Http\Controllers\Api\ApprovalController;
+use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContentController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\LeaveController;
+use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\TeamController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::post('mobile/login', [AuthController::class, 'login']);
 
-// Attendance API
-Route::middleware('auth:sanctum')->prefix('attendance')->group(function () {
-    Route::post('/check-in', [App\Http\Controllers\Api\AttendanceController::class, 'checkIn']);
-    Route::post('/check-out', [App\Http\Controllers\Api\AttendanceController::class, 'checkOut']);
-    Route::get('/today', [App\Http\Controllers\Api\AttendanceController::class, 'today']);
-});
+Route::middleware('api-token')->prefix('mobile')->group(function () {
+    Route::get('me', [AuthController::class, 'me']);
+    Route::post('logout', [AuthController::class, 'logout']);
 
-// GPS Validation API
-Route::middleware('auth:sanctum')->prefix('gps')->group(function () {
-    Route::post('/validate', [App\Http\Controllers\Api\GpsController::class, 'validate']);
+    Route::get('dashboard', [DashboardController::class, 'index']);
+
+    Route::prefix('attendance')->group(function () {
+        Route::get('today', [AttendanceController::class, 'today']);
+        Route::get('history', [AttendanceController::class, 'history']);
+        Route::get('reasons', [AttendanceController::class, 'reasons']);
+        Route::post('check-in', [AttendanceController::class, 'checkIn']);
+        Route::post('check-out', [AttendanceController::class, 'checkOut']);
+    });
+
+    Route::prefix('leaves')->group(function () {
+        Route::get('/', [LeaveController::class, 'index']);
+        Route::get('types', [LeaveController::class, 'types']);
+        Route::post('/', [LeaveController::class, 'store']);
+        Route::get('{leave}', [LeaveController::class, 'show']);
+        Route::delete('{leave}', [LeaveController::class, 'destroy']);
+    });
+
+    Route::prefix('approvals')->group(function () {
+        Route::get('/', [ApprovalController::class, 'index']);
+        Route::post('{leave}/approve', [ApprovalController::class, 'approve']);
+        Route::post('{leave}/reject', [ApprovalController::class, 'reject']);
+        Route::post('{leave}/verify', [ApprovalController::class, 'verify']);
+    });
+
+    Route::prefix('team')->group(function () {
+        Route::get('/', [TeamController::class, 'index']);
+        Route::get('{member}', [TeamController::class, 'show']);
+    });
+
+    Route::prefix('projects')->group(function () {
+        Route::get('/', [ProjectController::class, 'index']);
+        Route::get('kanban', [ProjectController::class, 'kanban']);
+        Route::get('gantt', [ProjectController::class, 'gantt']);
+        Route::get('{id}', [ProjectController::class, 'show']);
+        Route::get('{id}/tasks', [ProjectController::class, 'tasks']);
+        Route::post('tasks/{task}', [ProjectController::class, 'updateTask']);
+    });
+
+    Route::prefix('activities')->group(function () {
+        Route::get('/', [ActivityController::class, 'index']);
+        Route::post('/', [ActivityController::class, 'store']);
+    });
+
+    Route::prefix('contents')->group(function () {
+        Route::get('videos', [ContentController::class, 'videos']);
+        Route::get('dokumentasi', [ContentController::class, 'dokumentasi']);
+        Route::get('pengumuman', [ContentController::class, 'pengumuman']);
+    });
+
+    Route::prefix('profile')->group(function () {
+        Route::get('/', [ProfileController::class, 'show']);
+        Route::put('/', [ProfileController::class, 'update']);
+    });
 });
