@@ -74,18 +74,22 @@
 
                     this.currentUrl = new URL(finalUrl, window.location.origin).pathname;
 
-                    Array.from(newBody.querySelectorAll('script')).forEach((oldScript) => {
-                        const script = document.createElement('script');
-                        Array.from(oldScript.attributes).forEach((attribute) => {
-                            script.setAttribute(attribute.name, attribute.value);
+                    try {
+                        Array.from(doc.body.querySelectorAll('script')).forEach((oldScript) => {
+                            const script = document.createElement('script');
+                            Array.from(oldScript.attributes).forEach((attribute) => {
+                                script.setAttribute(attribute.name, attribute.value);
+                            });
+                            script.textContent = oldScript.textContent;
+                            document.body.appendChild(script);
+                            document.body.removeChild(script);
                         });
-                        script.textContent = oldScript.textContent;
-                        document.body.appendChild(script);
-                        document.body.removeChild(script);
-                    });
 
-                    if (window.Alpine && typeof window.Alpine.initTree === 'function') {
-                        window.Alpine.initTree(currentContent);
+                        if (window.Alpine && typeof window.Alpine.initTree === 'function') {
+                            window.Alpine.initTree(currentContent);
+                        }
+                    } catch (error) {
+                        console.warn('SPA page scripts could not be initialized.', error);
                     }
 
                     window.dispatchEvent(new CustomEvent('spa:navigated', { detail: { url: this.currentUrl } }));
