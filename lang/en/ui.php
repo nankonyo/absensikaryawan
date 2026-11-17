@@ -548,4 +548,9 @@ return [
     'watch_tutorials' => 'Watch video tutorials at',
     'laracasts' => 'Laracasts',
     'deploy_now' => 'Deploy now',
+    'work_mode' => 'Work Mode',
+    'work_mode_help' => 'WFO must be within the office radius. WFH/WFA may attend from any location.',
+    'work_mode_wfo' => 'WFO — Office radius required',
+    'work_mode_wfh' => 'WFH — Any location (home)',
+    'work_mode_wfa' => 'WFA — Any location',
 ];

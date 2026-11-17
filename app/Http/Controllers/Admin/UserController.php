@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Department;
+use App\Models\EmployeeSetting;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\Unit;
@@ -74,6 +75,7 @@ class UserController extends Controller
             'birth_place' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
             'gender' => 'nullable|in:male,female',
+            'work_mode' => ['nullable', Rule::in(['WFO', 'WFH', 'WFA'])],
             'position' => 'nullable|string|max:100',
             'position_id' => $this->positionRules($request),
             'department_id' => 'nullable|exists:departments,id',
@@ -98,6 +100,7 @@ class UserController extends Controller
         ]);
 
         $this->saveContract($user, $request);
+        $this->saveWorkMode($user, $request);
 
         $this->syncAttributes($user, $request);
 
@@ -110,7 +113,7 @@ class UserController extends Controller
 
     public function show(User $user)
     {
-        $user->load('role', 'supervisor', 'subordinates.role', 'department', 'unit', 'branch', 'positionMaster', 'attributeValues.attribute');
+        $user->load('role', 'supervisor', 'subordinates.role', 'department', 'unit', 'branch', 'positionMaster', 'employeeSetting', 'attributeValues.attribute');
 
         return view('admin.users.show', [
             'user' => $user,
@@ -134,6 +137,7 @@ class UserController extends Controller
             'birth_place' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
             'gender' => 'nullable|in:male,female',
+            'work_mode' => ['nullable', Rule::in(['WFO', 'WFH', 'WFA'])],
             'position' => 'nullable|string|max:100',
             'position_id' => $this->positionRules($request),
             'department_id' => 'nullable|exists:departments,id',
@@ -167,6 +171,7 @@ class UserController extends Controller
         $user->update($data);
 
         $this->saveContract($user, $request);
+        $this->saveWorkMode($user, $request);
 
         $this->syncAttributes($user, $request);
 
@@ -217,6 +222,18 @@ class UserController extends Controller
             'branch_id' => $request->branch_id,
             'employment_status' => $request->employment_status ?: 'permanent',
         ];
+    }
+
+    private function saveWorkMode(User $user, Request $request): void
+    {
+        if (! $request->filled('work_mode')) {
+            return;
+        }
+
+        EmployeeSetting::updateOrCreate(
+            ['user_id' => $user->id],
+            ['work_mode' => strtoupper((string) $request->input('work_mode'))],
+        );
     }
 
     /**
@@ -378,6 +395,7 @@ class UserController extends Controller
             'positions' => $positions,
             'supervisors' => $supervisors,
             'branches' => $branches,
+            'workMode' => old('work_mode', $user?->employeeSetting?->work_mode ?: 'WFO'),
             'activeAttributes' => UserAttribute::where('is_active', true)->orderBy('sort_order')->orderBy('label')->get(),
             'picker' => [
                 'departments' => $departments->map(fn ($department) => [

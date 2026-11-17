@@ -79,6 +79,10 @@
                     <p class="text-gray-900 font-medium">{{ $user->gender ? __('ui.'.$user->gender) : __('ui.empty') }}</p>
                 </div>
                 <div>
+                    <p class="text-sm text-gray-500">{{ __('ui.work_mode') }}</p>
+                    <p class="text-gray-900 font-medium">{{ $user->work_mode }}</p>
+                </div>
+                <div>
                     <p class="text-sm text-gray-500">{{ __('ui.employment_status') }}</p>
                     <p class="text-gray-900 font-medium">
                         {{ $user->isContract() ? __('ui.employment_contract') : __('ui.employment_permanent') }}

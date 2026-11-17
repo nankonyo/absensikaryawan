@@ -121,6 +121,9 @@ export const AttendanceScreen = () => {
   }
 
   const attendance = data?.attendance;
+  const workMode = data?.work_mode ?? 'WFO';
+  const isWfo = workMode === 'WFO';
+  const workIcon = workMode === 'WFH' ? 'home' : workMode === 'WFA' ? 'globe' : 'location';
 
   return (
     <Screen
@@ -153,29 +156,45 @@ export const AttendanceScreen = () => {
             </View>
 
             <View style={styles.officeBox}>
-              <Ionicons name="location" size={16} color={colors.primary} />
+              <Ionicons name={workIcon as any} size={16} color={colors.primary} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.officeName}>{data?.office?.name ?? 'Kantor belum diatur'}</Text>
+                <Text style={styles.officeName}>Mode kerja: {workMode}</Text>
                 <Text style={styles.muted}>
-                  Radius {data?.office?.radius ?? 0} m · Jam kerja {data?.work_start_time} - {data?.work_end_time}
+                  {isWfo
+                    ? `${data?.office?.name ?? 'Kantor belum diatur'} · Radius ${data?.office?.radius ?? 0} m`
+                    : 'Bebas lokasi — presensi dapat dilakukan dari mana saja'}
+                </Text>
+                <Text style={styles.muted}>
+                  Jam kerja {data?.work_start_time} - {data?.work_end_time}
                 </Text>
               </View>
             </View>
           </Card>
 
           <Card style={{ gap: spacing.md }}>
-            <Text style={styles.sectionLabel}>Alasan kehadiran (jika di luar zona)</Text>
-            <View style={styles.chips}>
-              {(data?.reasons ?? []).map((reason) => (
-                <TouchableOpacity
-                  key={reason.id}
-                  style={[styles.chip, reasonId === reason.id && styles.chipActive]}
-                  onPress={() => setReasonId(reasonId === reason.id ? null : reason.id)}
-                >
-                  <Text style={[styles.chipText, reasonId === reason.id && styles.chipTextActive]}>{reason.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {isWfo ? (
+              <>
+                <Text style={styles.sectionLabel}>Alasan kehadiran (jika di luar zona)</Text>
+                <View style={styles.chips}>
+                  {(data?.reasons ?? []).map((reason) => (
+                    <TouchableOpacity
+                      key={reason.id}
+                      style={[styles.chip, reasonId === reason.id && styles.chipActive]}
+                      onPress={() => setReasonId(reasonId === reason.id ? null : reason.id)}
+                    >
+                      <Text style={[styles.chipText, reasonId === reason.id && styles.chipTextActive]}>{reason.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            ) : (
+              <View style={styles.officeBox}>
+                <Ionicons name={workIcon as any} size={16} color={colors.primary} />
+                <Text style={styles.muted}>
+                  Mode {workMode}: presensi bebas lokasi, tidak perlu memilih alasan luar kantor.
+                </Text>
+              </View>
+            )}
 
             <Field label="Catatan (opsional)" value={notes} onChangeText={setNotes} placeholder="Catatan presensi" />
 
@@ -191,7 +210,9 @@ export const AttendanceScreen = () => {
               disabled={submitting || Boolean(attendance?.check_out)}
             />
             <Text style={styles.hint}>
-              Lokasi dan foto diambil saat tombol ditekan. Jika di luar radius, pilih alasan kehadiran agar masuk verifikasi.
+              {isWfo
+                ? 'Lokasi dan foto diambil saat tombol ditekan. Jika di luar radius, pilih alasan kehadiran agar masuk verifikasi.'
+                : `Mode ${workMode} bebas lokasi. Lokasi dan foto tetap direkam untuk arsip presensi.`}
             </Text>
           </Card>
         </>

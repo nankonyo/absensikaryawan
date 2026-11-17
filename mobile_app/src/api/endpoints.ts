@@ -42,6 +42,7 @@ export const attendanceApi = {
       work_start_time: string;
       work_end_time: string;
       reasons: { id: number; name: string }[];
+      work_mode: 'WFO' | 'WFH' | 'WFA';
     }>('/attendance/today'),
   history: (params?: { month?: string; status?: string; per_page?: number }) =>
     api.get<{ data: Attendance[]; current_page: number; last_page: number }>('/attendance/history', { params }),

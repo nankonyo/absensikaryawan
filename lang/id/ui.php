@@ -548,4 +548,9 @@ return [
     'watch_tutorials' => 'Tonton tutorial video di',
     'laracasts' => 'Laracasts',
     'deploy_now' => 'Terapkan sekarang',
+    'work_mode' => 'Mode Kerja',
+    'work_mode_help' => 'WFO wajib berada dalam radius kantor. WFH/WFA bebas melakukan presensi dari lokasi mana pun.',
+    'work_mode_wfo' => 'WFO — Wajib di radius kantor',
+    'work_mode_wfh' => 'WFH — Bebas lokasi (rumah)',
+    'work_mode_wfa' => 'WFA — Bebas lokasi',
 ];

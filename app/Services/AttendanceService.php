@@ -33,11 +33,18 @@ class AttendanceService
             ];
         }
 
-        // Validate GPS
+        $workMode = $this->workMode($user);
+
+        // WFO is bound to the office radius; WFH/WFA may attend from anywhere.
         $gpsValidation = $this->gpsService->validateLocation(
             $data['latitude'],
             $data['longitude']
         );
+
+        if ($workMode !== 'WFO') {
+            $gpsValidation['valid'] = true;
+            $gpsValidation['message'] = __('ui.gps_valid');
+        }
 
         $verification = $this->resolveVerification($gpsValidation, $data, $existing);
 
@@ -114,6 +121,7 @@ class AttendanceService
                 : __('ui.check_in_success'),
             'attendance' => $attendance,
             'late_duration' => $lateDuration,
+            'work_mode' => $workMode,
         ];
     }
 
@@ -133,11 +141,19 @@ class AttendanceService
             ];
         }
 
-        // Validate GPS
+        $workMode = $this->workMode($user);
+
+        // WFO is bound to the office radius; WFH/WFA may attend from anywhere.
         $gpsValidation = $this->gpsService->validateLocation(
             $data['latitude'],
             $data['longitude']
         );
+
+        if ($workMode !== 'WFO') {
+            $gpsValidation['valid'] = true;
+            $gpsValidation['message'] = __('ui.gps_valid');
+        }
+
         $verification = $this->resolveVerification($gpsValidation, $data, $attendance);
 
         if (isset($verification['error'])) {
@@ -222,6 +238,7 @@ class AttendanceService
                 : __('ui.check_out_success'),
             'attendance' => $attendance,
             'work_duration' => $workDuration,
+            'work_mode' => $workMode,
         ];
     }
 
@@ -271,6 +288,16 @@ class AttendanceService
             'reason_id' => $reason->id,
             'notes' => $data['notes'] ?? null,
         ];
+    }
+
+    /**
+     * Employee work mode. Unknown values fall back to the strict WFO mode.
+     */
+    public function workMode(User $user): string
+    {
+        $mode = strtoupper((string) ($user->employeeSetting?->work_mode ?? 'WFO'));
+
+        return in_array($mode, ['WFO', 'WFH', 'WFA'], true) ? $mode : 'WFO';
     }
 
     /**

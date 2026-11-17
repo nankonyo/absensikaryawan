@@ -61,6 +61,18 @@ class User extends Authenticatable
         return $this->hasOne(UserContract::class);
     }
 
+    public function employeeSetting()
+    {
+        return $this->hasOne(EmployeeSetting::class, 'user_id');
+    }
+
+    public function getWorkModeAttribute(): string
+    {
+        $mode = strtoupper((string) ($this->employeeSetting?->work_mode ?? 'WFO'));
+
+        return in_array($mode, ['WFO', 'WFH', 'WFA'], true) ? $mode : 'WFO';
+    }
+
     public function getContractStartDateAttribute()
     {
         return $this->contract?->start_date;

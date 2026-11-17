@@ -135,6 +135,8 @@
 
                     @include('admin.users.partials.org-fields')
 
+                    @include('admin.users.partials.work-mode-fields')
+
                     <!-- Branch -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('ui.branch') }}</label>

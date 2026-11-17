@@ -9,6 +9,7 @@
     $button = $accent === 'red' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700';
     $attendanceReasons = \App\Models\AttendanceReason::where('is_active', true)->orderBy('id')->get();
     $office = app(\App\Services\GpsValidationService::class)->getActiveOffice();
+    $workMode = auth()->user()->work_mode;
     $officeData = $office ? [
         'latitude' => (float) $office->latitude,
         'longitude' => (float) $office->longitude,
@@ -134,6 +135,7 @@
     const FACE_AVATAR_URL = @json(auth()->user()->avatar_url);
     const FACE_THRESHOLD = {{ (int) app(\App\Services\FaceRecognitionService::class)->getThreshold() }};
     const OFFICE = @json($officeData);
+    const WORK_MODE = @json($workMode);
 
     const MSG = {
         cameraError: @json(__('ui.camera_error', ['message' => '__MSG__'])),
@@ -245,7 +247,7 @@
                         position.coords.longitude
                     );
 
-                    if (OFFICE && distance !== null && distance > OFFICE.radius) {
+                    if (WORK_MODE === 'WFO' && OFFICE && distance !== null && distance > OFFICE.radius) {
                         this.pendingPosition = position;
                         this.busy = false;
                         this.needsReason = true;

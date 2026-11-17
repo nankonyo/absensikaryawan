@@ -3,7 +3,12 @@
     <div class="max-w-4xl mx-auto">
         <!-- Today's Status Card -->
         <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 class="text-xl font-bold text-gray-900 mb-4">{{ __('ui.todays_attendance') }}</h2>
+            <div class="mb-4 flex items-center justify-between gap-3">
+                <h2 class="text-xl font-bold text-gray-900">{{ __('ui.todays_attendance') }}</h2>
+                <span class="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                    {{ __('ui.work_mode') }}: {{ auth()->user()->work_mode }}
+                </span>
+            </div>
 
             @if($todayAttendance)
                 <div class="grid grid-cols-2 gap-4">

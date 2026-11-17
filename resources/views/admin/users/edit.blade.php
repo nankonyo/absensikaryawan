@@ -158,6 +158,8 @@
 
                     @include('admin.users.partials.org-fields')
 
+                    @include('admin.users.partials.work-mode-fields')
+
                     <!-- Supervisor: higher-level users in the selected branch -->
                     <div class="md:col-span-2" x-show="!isTopLevel">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
