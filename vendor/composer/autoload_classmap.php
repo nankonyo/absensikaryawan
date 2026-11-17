@@ -74,7 +74,6 @@ return array(
     'App\\Http\\Middleware\\SetLocale' => $baseDir . '/app/Http/Middleware/SetLocale.php',
     'App\\Http\\Requests\\Auth\\LoginRequest' => $baseDir . '/app/Http/Requests/Auth/LoginRequest.php',
     'App\\Http\\Requests\\ProfileUpdateRequest' => $baseDir . '/app/Http/Requests/ProfileUpdateRequest.php',
-    'App\\Livewire\\Settings\\SettingsPage' => $baseDir . '/app/Livewire/Settings/SettingsPage.php',
     'App\\Models\\ApiToken' => $baseDir . '/app/Models/ApiToken.php',
     'App\\Models\\Attendance' => $baseDir . '/app/Models/Attendance.php',
     'App\\Models\\AttendanceReason' => $baseDir . '/app/Models/AttendanceReason.php',

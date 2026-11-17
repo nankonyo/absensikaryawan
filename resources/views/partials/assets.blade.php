@@ -1,5 +1,7 @@
 <script src="{{ asset('js/ia-progress.js') }}?v={{ @filemtime(public_path('js/ia-progress.js')) }}"></script>
+<script src="{{ asset('js/alpine-spa.js') }}?v={{ @filemtime(public_path('js/alpine-spa.js')) }}"></script>
 @if (config('app.asset_mode') === 'cdn')
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {

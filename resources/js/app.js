@@ -37,34 +37,6 @@ const setProgress = (value, visible = true) => {
     window.dispatchEvent(new CustomEvent('ia-progress', { detail: { value, visible } }));
 };
 
-document.addEventListener('livewire:init', () => {
-    window.Livewire.on('notify', (payload) => {
-        const data = Array.isArray(payload) ? payload[0] : payload;
-        const type = ['success', 'error', 'warning', 'info'].includes(data?.type) ? data.type : 'info';
-        toastr[type](data?.message ?? '', data?.title ?? '');
-    });
-
-    window.Livewire.hook('commit', ({ succeed, fail }) => {
-        setProgress(8);
-        let value = 8;
-        const timer = setInterval(() => {
-            value = Math.min(92, value + Math.ceil(Math.random() * 12));
-            setProgress(value);
-        }, 220);
-
-        succeed(() => {
-            clearInterval(timer);
-            setProgress(100);
-            setTimeout(() => setProgress(0, false), 500);
-        });
-
-        fail(() => {
-            clearInterval(timer);
-            setProgress(0, false);
-        });
-    });
-});
-
 Alpine.data('tiptapEditor', (config = {}) => ({
     editor: null,
 
@@ -124,6 +96,11 @@ if (document.readyState === 'loading') {
 } else {
     labelTableCells();
 }
+
+document.addEventListener('spa:navigated', () => {
+    labelTableCells();
+    if (window.enhancePickers) window.enhancePickers();
+});
 
 Alpine.data('userForm', (config) => ({
     department: config.department ?? '',

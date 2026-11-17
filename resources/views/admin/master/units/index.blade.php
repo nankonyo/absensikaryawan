@@ -24,7 +24,7 @@
         @endif
         <label class="flex items-center gap-2 text-sm text-gray-600">
             {{ __('ui.per_page') }}
-            <select name="per_page" onchange="this.form.submit()"
+            <select name="per_page" onchange="this.form.requestSubmit()"
                     class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
                 @foreach([5, 10, 15, 25, 50, 100] as $option)
                     <option value="{{ $option }}" @selected((int) $perPage === $option)>{{ $option }}</option>

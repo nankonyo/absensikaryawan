@@ -228,38 +228,6 @@ if (window.Alpine) {
     document.addEventListener('alpine:init', registerAlpine);
 }
 
-document.addEventListener('livewire:init', () => {
-    if (window.Livewire) {
-        window.Livewire.on('notify', (payload) => {
-            const data = Array.isArray(payload) ? payload[0] : payload;
-            const type = ['success', 'error', 'warning', 'info'].includes(data?.type) ? data.type : 'info';
-            if (window.toastr) {
-                window.toastr[type](data?.message ?? '', data?.title ?? '');
-            }
-        });
-
-        window.Livewire.hook('commit', ({ succeed, fail }) => {
-            setProgress(8);
-            let value = 8;
-            const timer = setInterval(() => {
-                value = Math.min(92, value + Math.ceil(Math.random() * 12));
-                setProgress(value);
-            }, 220);
-
-            succeed(() => {
-                clearInterval(timer);
-                setProgress(100);
-                setTimeout(() => setProgress(0, false), 500);
-            });
-
-            fail(() => {
-                clearInterval(timer);
-                setProgress(0, false);
-            });
-        });
-    }
-});
-
 // Flatpickr enhancement (CDN globals)
 const initDatepickers = (root = document) => {
     if (!window.flatpickr) return;
@@ -296,7 +264,7 @@ if (document.readyState === 'loading') {
     initDatepickers();
 }
 
-document.addEventListener('livewire:navigated', () => initDatepickers());
+document.addEventListener('spa:navigated', () => initDatepickers());
 
 // Table labels for responsive card view
 const labelTableCells = () => {
@@ -323,4 +291,4 @@ if (document.readyState === 'loading') {
     labelTableCells();
 }
 
-document.addEventListener('livewire:navigated', labelTableCells);
+document.addEventListener('spa:navigated', labelTableCells);

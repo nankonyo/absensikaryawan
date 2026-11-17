@@ -3,7 +3,7 @@
     <div class="mb-6 flex items-center justify-between">
         <h2 class="text-2xl font-bold text-gray-900">{{ __('ui.team_attendance') }}</h2>
         <form method="GET" class="flex flex-wrap items-center gap-2">
-            <select name="department_id" onchange="this.form.submit()"
+            <select name="department_id" onchange="this.form.requestSubmit()"
                     class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
                 <option value="">{{ __('ui.all_departments') }}</option>
                 @foreach($departments as $department)
@@ -13,7 +13,7 @@
                 @endforeach
             </select>
             @if($departmentId)
-                <select name="unit_id" onchange="this.form.submit()"
+                <select name="unit_id" onchange="this.form.requestSubmit()"
                         class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
                     <option value="">{{ __('ui.all_units') }}</option>
                     @foreach($units as $unit)

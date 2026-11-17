@@ -15,7 +15,6 @@
 
         <!-- Scripts -->
         @include('partials.assets')
-        @livewireStyles
     </head>
     <body class="font-sans text-gray-900 antialiased">
         @if($full)
@@ -51,6 +50,5 @@
         </div>
         @endif
         @include('partials.dev-reload')
-        @livewireScripts
 </body>
 </html>

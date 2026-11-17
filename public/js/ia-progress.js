@@ -89,6 +89,12 @@
             if (!form || form.hasAttribute('data-no-progress')) {
                 return;
             }
+
+            const method = (form.getAttribute('method') || 'GET').toUpperCase();
+            if (method === 'GET' && document.getElementById('ia-page-body')) {
+                return;
+            }
+
             window.iaStartProgress();
         },
         true,
@@ -100,6 +106,10 @@
             const el = event.target;
             if (!el || !el.form) return;
             if (el.hasAttribute('onchange') || el.hasAttribute('data-auto-submit')) {
+                const method = (el.form.getAttribute('method') || 'GET').toUpperCase();
+                if (method === 'GET' && document.getElementById('ia-page-body')) {
+                    return;
+                }
                 window.iaStartProgress();
             }
         },

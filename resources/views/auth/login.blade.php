@@ -136,7 +136,7 @@
                         </label>
 
                         @if (Route::has('password.request'))
-                            <a class="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline" href="{{ route('password.request') }}" wire:navigate>
+                            <a class="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline" href="{{ route('password.request') }}">
                                 Lupa kata sandi?
                             </a>
                         @endif
@@ -251,11 +251,7 @@
                         toast('success', data.message || 'Berhasil masuk.');
                         const redirectUrl = data.redirect || '{{ route('dashboard') }}';
 
-                        if (window.Livewire && typeof window.Livewire.navigate === 'function') {
-                            window.Livewire.navigate(redirectUrl);
-                        } else {
-                            window.location.href = redirectUrl;
-                        }
+                        window.location.href = redirectUrl;
                         return;
                     }
 

@@ -1,6 +1,6 @@
 @props(['value' => '', 'placeholder' => 'Tulis di sini...', 'label' => null, 'error' => null])
 
-<div class="space-y-1.5" wire:ignore>
+<div class="space-y-1.5">
     @if($label)
         <label class="block text-sm font-semibold text-slate-700">{{ $label }}</label>
     @endif

@@ -22,7 +22,6 @@ if (app()->environment('local')) {
                 public_path('css'),
                 public_path('cdn'),
                 base_path('routes'),
-                base_path('app/Livewire'),
             ];
 
             $versions = [];

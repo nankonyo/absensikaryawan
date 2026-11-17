@@ -792,7 +792,6 @@ class ComposerStaticInit2105bf92543297eeea10b281ac1ae013
         'App\\Http\\Middleware\\SetLocale' => __DIR__ . '/../..' . '/app/Http/Middleware/SetLocale.php',
         'App\\Http\\Requests\\Auth\\LoginRequest' => __DIR__ . '/../..' . '/app/Http/Requests/Auth/LoginRequest.php',
         'App\\Http\\Requests\\ProfileUpdateRequest' => __DIR__ . '/../..' . '/app/Http/Requests/ProfileUpdateRequest.php',
-        'App\\Livewire\\Settings\\SettingsPage' => __DIR__ . '/../..' . '/app/Livewire/Settings/SettingsPage.php',
         'App\\Models\\ApiToken' => __DIR__ . '/../..' . '/app/Models/ApiToken.php',
         'App\\Models\\Attendance' => __DIR__ . '/../..' . '/app/Models/Attendance.php',
         'App\\Models\\AttendanceReason' => __DIR__ . '/../..' . '/app/Models/AttendanceReason.php',

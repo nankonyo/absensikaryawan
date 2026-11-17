@@ -10,14 +10,14 @@
             placeholder="{{ __('ui.search_leaves') }}"
             class="flex-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500"
         >
-        <select name="status" onchange="this.form.submit()"
+        <select name="status" onchange="this.form.requestSubmit()"
                 class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
             <option value="">{{ __('ui.all_status') }}</option>
             <option value="pending" @selected($status === 'pending')>{{ __('ui.statuses.pending') }}</option>
             <option value="approved" @selected($status === 'approved')>{{ __('ui.statuses.approved') }}</option>
             <option value="rejected" @selected($status === 'rejected')>{{ __('ui.statuses.rejected') }}</option>
         </select>
-        <select name="leave_type_id" onchange="this.form.submit()"
+        <select name="leave_type_id" onchange="this.form.requestSubmit()"
                 class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
             <option value="">{{ __('ui.all_leave_types') }}</option>
             @forelse($leaveTypes ?? [] as $leaveType)
@@ -36,7 +36,7 @@
         @endif
         <label class="flex items-center gap-2 text-sm text-gray-600">
             {{ __('ui.per_page') }}
-            <select name="per_page" onchange="this.form.submit()"
+            <select name="per_page" onchange="this.form.requestSubmit()"
                     class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
                 @foreach([5, 10, 15, 25, 50, 100] as $option)
                     <option value="{{ $option }}" @selected((int) $perPage === $option)>{{ $option }}</option>

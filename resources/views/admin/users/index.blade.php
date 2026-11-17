@@ -15,7 +15,7 @@
             placeholder="{{ __('ui.search_users') }}"
             class="flex-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500"
         >
-        <select name="department_id" onchange="this.form.submit()"
+        <select name="department_id" onchange="this.form.requestSubmit()"
                 class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
             <option value="">{{ __('ui.all_departments') }}</option>
             @foreach($departments as $department)
@@ -25,7 +25,7 @@
             @endforeach
         </select>
         @if($departmentId)
-            <select name="unit_id" onchange="this.form.submit()"
+            <select name="unit_id" onchange="this.form.requestSubmit()"
                     class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
                 <option value="">{{ __('ui.all_units') }}</option>
                 @foreach($units as $unit)
@@ -45,7 +45,7 @@
         @endif
         <label class="flex items-center gap-2 text-sm text-gray-600">
             {{ __('ui.per_page') }}
-            <select name="per_page" onchange="this.form.submit()"
+            <select name="per_page" onchange="this.form.requestSubmit()"
                     class="rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500">
                 @foreach([5, 10, 15, 25, 50, 100] as $option)
                     <option value="{{ $option }}" @selected((int) $perPage === $option)>{{ $option }}</option>

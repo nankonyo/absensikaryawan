@@ -5,7 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ !empty($header) ? $header.' — '.config('app.name', 'Laravel') : config('app.name', 'Laravel') }}</title>
+    @php
+        $rawHeader = (string) ($header ?? '');
+        $pageTitle = trim((string) ($title ?? ''));
+
+        if ($pageTitle === '' && $rawHeader !== '') {
+            if (preg_match('/<(?:h1|h2|p)[^>]*>(.*?)<\/(?:h1|h2|p)>/is', $rawHeader, $matches)) {
+                $pageTitle = trim(strip_tags($matches[1]));
+            } else {
+                $pageTitle = trim(strip_tags($rawHeader));
+            }
+        }
+    @endphp
+    <title>{{ $pageTitle !== '' ? $pageTitle.' — '.config('app.name', 'Laravel') : config('app.name', 'Laravel') }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -13,7 +25,6 @@
 
     <!-- Scripts -->
     @include('partials.assets')
-    @livewireStyles
 </head>
 @php($lockScroll = request()->routeIs('karyawan.attendance.check-in', 'karyawan.attendance.check-out'))
 <body class="font-sans antialiased bg-[#F8FAFC] {{ $lockScroll ? 'fixed inset-0 overflow-hidden overscroll-none' : '' }}">
@@ -32,14 +43,14 @@
             @endunless
 
             <!-- Page Content -->
-            <main class="p-4 lg:p-6">
-                {{ $slot }}
+            <main id="ia-page-body" class="relative p-4 lg:p-6">
+                @include('partials.skeleton-overlay')
+                <div id="ia-page-content">{{ $slot }}</div>
             </main>
         </div>
     </div>
 
     <x-toast />
-    @livewireScripts
     <script>
         (function () {
             document.addEventListener('change', function (event) {
