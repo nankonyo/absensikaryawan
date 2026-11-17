@@ -111,32 +111,55 @@ export const AdminResourceScreen = () => {
     setModalOpen(true);
   };
 
+  const setPickedFile = (field: AdminField, asset: { uri: string; fileName?: string | null; name?: string | null; mimeType?: string | null }, fallbackType: string) => {
+    setForm({
+      ...form,
+      [field.name]: {
+        uri: asset.uri,
+        name: asset.fileName || asset.name || `${field.name}.jpg`,
+        type: asset.mimeType || fallbackType,
+      },
+    });
+  };
+
+  const pickImage = async (field: AdminField, source: 'camera' | 'gallery') => {
+    const permission = source === 'camera'
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permission.status !== 'granted') {
+      Alert.alert('Izin diperlukan', source === 'camera' ? 'Izinkan akses kamera.' : 'Izinkan akses galeri.');
+      return;
+    }
+
+    const result = source === 'camera'
+      ? await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          quality: 0.7,
+          allowsEditing: true,
+          aspect: [1, 1],
+          cameraType: ImagePicker.CameraType.front,
+        })
+      : await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 0.7,
+          allowsEditing: true,
+          aspect: [1, 1],
+        });
+
+    if (!result.canceled && result.assets?.[0]) {
+      setPickedFile(field, result.assets[0], 'image/jpeg');
+    }
+  };
+
   const pickFile = async (field: AdminField) => {
     try {
       if (field.accept === 'image') {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permission.status !== 'granted') {
-          Alert.alert('Izin diperlukan', 'Izinkan akses galeri untuk memilih gambar.');
-          return;
-        }
-
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          quality: 0.7,
-        });
-
-        if (!result.canceled && result.assets?.[0]) {
-          const asset = result.assets[0];
-          setForm({
-            ...form,
-            [field.name]: {
-              uri: asset.uri,
-              name: asset.fileName || `${field.name}.jpg`,
-              type: asset.mimeType || 'image/jpeg',
-            },
-          });
-        }
-
+        Alert.alert('Foto Wajah', 'Pilih sumber foto', [
+          { text: 'Kamera', onPress: () => pickImage(field, 'camera') },
+          { text: 'Galeri', onPress: () => pickImage(field, 'gallery') },
+          { text: 'Batal', style: 'cancel' },
+        ]);
         return;
       }
 
@@ -147,15 +170,7 @@ export const AdminResourceScreen = () => {
       });
 
       if (!result.canceled && result.assets?.[0]) {
-        const asset = result.assets[0];
-        setForm({
-          ...form,
-          [field.name]: {
-            uri: asset.uri,
-            name: asset.name || `${field.name}`,
-            type: asset.mimeType || 'application/pdf',
-          },
-        });
+        setPickedFile(field, result.assets[0], 'application/pdf');
       }
     } catch (error) {
       Alert.alert('Gagal', 'Tidak dapat memilih file.');
