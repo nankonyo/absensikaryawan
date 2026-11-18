@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { colors, radius, spacing } from '../../theme';
 
 const menus = [
-  { key: 'Projects', label: 'Project Management', desc: 'Daftar project dan progres', icon: 'briefcase', color: '#2563eb' },
+  { key: 'Projects', label: 'Project Management', desc: 'Daftar project dan progres', icon: 'briefcase', color: colors.primary },
   { key: 'Kanban', label: 'Kanban Board', desc: 'Task per status', icon: 'grid', color: '#7c3aed' },
   { key: 'Gantt', label: 'Gantt Chart', desc: 'Timeline task project', icon: 'bar-chart', color: '#0ea5e9' },
   { key: 'Activities', label: 'Aktivitas', desc: 'Log aktivitas project', icon: 'pulse', color: '#059669' },

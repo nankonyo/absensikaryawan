@@ -8,7 +8,7 @@ TMP = Path('/tmp/rst-mobile-assets')
 TMP.mkdir(parents=True, exist_ok=True)
 
 FONT = "Helvetica, Arial, sans-serif"
-GRAD = '''<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d4ed8"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs>'''
+GRAD = '''<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B33C43"/><stop offset="1" stop-color="#E2757B"/></linearGradient></defs>'''
 
 def svg(body, size=1024, background='url(#g)'):
     bg = f'<rect width="1024" height="1024" fill="{background}"/>'
@@ -27,12 +27,12 @@ logs = {
     'adaptive-icon.svg': svg(
         text(512, 585, 210, 'RST', spacing=18)
         + text(512, 675, 58, 'INTERNAL', spacing=8)
-    , background='#2563eb'),
+    , background='#D34B52'),
     'splash-icon.svg': svg(
         text(512, 510, 200, 'RST', spacing=18)
         + text(512, 605, 54, 'INTERNAL APP', spacing=8)
         + text(512, 685, 28, 'SISTEM ABSENSI KARYAWAN', weight=600, spacing=6)
-    , background='#2563eb'),
+    , background='#D34B52'),
     'favicon.svg': svg(
         text(64, 84, 58, 'RST', spacing=2)
     , size=128),

@@ -184,7 +184,7 @@
                     <option value="{{ $val }}" @selected($project->status===$val)>{{ $label }}</option>
                     @endforeach
                 </select>
-                <input name="color" type="color" value="{{ $project->color ?: '#2563eb' }}" class="h-10 rounded-xl border border-slate-200 px-2 py-1">
+                <input name="color" type="color" value="{{ $project->color ?: '#D34B52' }}" class="h-10 rounded-xl border border-slate-200 px-2 py-1">
                 <input name="start_date" type="date" value="{{ $project->start_date }}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
                 <input name="end_date" type="date" value="{{ $project->end_date }}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
                 <textarea name="description" rows="2" placeholder="Deskripsi" class="rounded-xl border border-slate-200 px-3 py-2 text-sm sm:col-span-2">{{ $project->description }}</textarea>

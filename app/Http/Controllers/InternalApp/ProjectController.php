@@ -85,7 +85,7 @@ class ProjectController extends Controller
             'code' => $v['code'] ?? null, 'name' => $v['name'], 'description' => $v['description'] ?? null,
             'owner_id' => InternalAppService::userId(), 'start_date' => $v['start_date'] ?? null,
             'end_date' => $v['end_date'] ?? null, 'status' => $v['status'] ?? 'planning',
-            'progress' => 0, 'color' => $v['color'] ?? '#2563eb',
+            'progress' => 0, 'color' => $v['color'] ?? '#D34B52',
         ];
         $data = array_merge($data, $this->projectMeta($v));
         $id = DB::table('internal_projects')->insertGetId($data + ['created_at' => now(), 'updated_at' => now()]);
@@ -124,7 +124,7 @@ class ProjectController extends Controller
         $data = [
             'name' => $v['name'], 'description' => $v['description'] ?? null,
             'start_date' => $v['start_date'] ?? null, 'end_date' => $v['end_date'] ?? null,
-            'status' => $v['status'], 'color' => $v['color'] ?? '#2563eb',
+            'status' => $v['status'], 'color' => $v['color'] ?? '#D34B52',
         ];
         $data = array_merge($data, $this->projectMeta($v));
         $data['updated_at'] = now();

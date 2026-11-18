@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#2563eb"
+      "backgroundColor": "#D34B52"
     },
     "ios": {
       "supportsTablet": true,
@@ -30,7 +30,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#2563eb"
+        "backgroundColor": "#D34B52"
       },
       "package": "com.rst.internalapp",
       "versionCode": 1
@@ -62,7 +62,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#2563eb",
+          "backgroundColor": "#D34B52",
           "image": "./assets/splash-icon.png",
           "imageWidth": 512,
           "resizeMode": "contain"

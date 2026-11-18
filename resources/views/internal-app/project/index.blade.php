@@ -20,7 +20,7 @@
         @forelse($projects as $p)
         <div class="ia-card p-5">
             <div class="flex items-start justify-between gap-3">
-                <div><span class="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style="background:{{ $p->color ?: '#2563eb' }}">{{ strtoupper($p->status) }}</span><h3 class="mt-2 text-lg font-bold">{{ $p->name }}</h3><p class="text-xs text-slate-500">{{ $p->code ?: 'Tanpa kode' }} · {{ $p->owner_name ?: '-' }}</p>@if($p->daerah || $p->instansi)<p class="text-[11px] text-slate-400">{{ $p->daerah ?: '-' }} · {{ $p->instansi ?: '-' }}</p>@endif</div>
+                <div><span class="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style="background:{{ $p->color ?: '#D34B52' }}">{{ strtoupper($p->status) }}</span><h3 class="mt-2 text-lg font-bold">{{ $p->name }}</h3><p class="text-xs text-slate-500">{{ $p->code ?: 'Tanpa kode' }} · {{ $p->owner_name ?: '-' }}</p>@if($p->daerah || $p->instansi)<p class="text-[11px] text-slate-400">{{ $p->daerah ?: '-' }} · {{ $p->instansi ?: '-' }}</p>@endif</div>
                 <span class="text-xs font-bold text-slate-500">{{ $p->progress }}%</span>
             </div>
             <p class="mt-2 line-clamp-2 min-h-[32px] text-xs text-slate-500">{{ $p->description }}</p>

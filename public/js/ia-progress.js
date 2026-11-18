@@ -23,7 +23,7 @@
                 'box-shadow:0 25px 60px rgba(15,23,42,.35);text-align:center;font-family:inherit;">' +
                 '<div data-caption style="font-size:12px;font-weight:600;color:#475569;margin-bottom:12px;">Memproses data...</div>' +
                 '<div style="height:9px;background:#e2e8f0;border-radius:999px;overflow:hidden;">' +
-                '<div data-bar style="height:100%;width:0;background:#2563eb;border-radius:999px;transition:width .18s ease;"></div>' +
+                '<div data-bar style="height:100%;width:0;background:#D34B52;border-radius:999px;transition:width .18s ease;"></div>' +
                 '</div>' +
                 '<div data-label style="margin-top:12px;font-size:24px;font-weight:800;color:#0f172a;letter-spacing:-.02em;">0%</div>' +
                 '</div>';

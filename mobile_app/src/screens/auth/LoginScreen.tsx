@@ -32,7 +32,7 @@ export const LoginScreen = () => {
   };
 
   return (
-    <LinearGradient colors={[colors.primaryDark, colors.primary, '#60a5fa']} style={styles.root}>
+    <LinearGradient colors={[colors.primaryDark, colors.primary, '#EDA2A7']} style={styles.root}>
       <View style={styles.hero}>
         <View style={styles.logo}>
           <Ionicons name="business" size={34} color="#fff" />

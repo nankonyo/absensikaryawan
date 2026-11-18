@@ -1,7 +1,7 @@
 <style>
     .ia-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
     .toggle-sw { appearance: none; width: 2.25rem; height: 1.25rem; border-radius: 9999px; background: #cbd5e1; position: relative; cursor: pointer; transition: background .2s; vertical-align: middle; }
-    .toggle-sw:checked { background: #2563eb; }
+    .toggle-sw:checked { background: #D34B52; }
     .toggle-sw::before { content: ''; position: absolute; top: 2px; left: 2px; width: 1rem; height: 1rem; border-radius: 50%; background: #fff; transition: transform .2s; }
     .toggle-sw:checked::before { transform: translateX(1rem); }
     .tour-highlight { outline: 3px solid #6366f1; outline-offset: 3px; border-radius: .5rem; }

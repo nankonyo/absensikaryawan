@@ -384,7 +384,7 @@ class InternalAppInstallation extends Model
                 $t->date('end_date')->nullable();
                 $t->string('status', 30)->default('planning');
                 $t->integer('progress')->default(0);
-                $t->string('color', 20)->default('#2563eb');
+                $t->string('color', 20)->default('#D34B52');
                 $t->string('production_url', 500)->nullable();
                 $t->string('development_url', 500)->nullable();
                 $t->string('hosting_provider', 150)->nullable();

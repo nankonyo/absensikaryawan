@@ -45,7 +45,7 @@ export const DashboardScreen = () => {
   };
 
   const quickMenu = [
-    { key: 'Attendance', label: 'Presensi', icon: 'finger-print', color: '#2563eb' },
+    { key: 'Attendance', label: 'Presensi', icon: 'finger-print', color: colors.primary },
     { key: 'Leave', label: 'Cuti & Izin', icon: 'calendar', color: '#059669' },
     { key: 'InternalTab', label: 'Internal App', icon: 'apps', color: '#7c3aed' },
     { key: 'Profile', label: 'Profil', icon: 'person', color: '#f59e0b' },
