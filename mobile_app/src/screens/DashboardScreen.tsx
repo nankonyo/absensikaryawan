@@ -120,7 +120,7 @@ export const DashboardScreen = () => {
 
       <View style={styles.statGrid}>
         <Stat label="Cuti Pending" value={data?.stats.my_pending_leaves ?? 0} icon="time" color="#f59e0b" />
-        <Stat label="Project" value={data?.stats.projects ?? 0} icon="briefcase" color="#2563eb" />
+        <Stat label="Project" value={data?.stats.projects ?? 0} icon="briefcase" color={colors.primary} />
         <Stat label="Aktivitas Bulan Ini" value={data?.stats.my_activities_this_month ?? 0} icon="pulse" color="#7c3aed" />
         {(user?.is_atasan || user?.is_admin) && (
           <Stat label="Menunggu Approval" value={data?.stats.pending_approvals ?? 0} icon="checkmark-done" color="#dc2626" />

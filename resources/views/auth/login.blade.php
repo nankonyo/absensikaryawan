@@ -11,7 +11,7 @@
     <div class="flex min-h-screen w-full bg-white font-sans text-slate-700">
         {{-- SISI KIRI: VISUAL --}}
         <div class="relative hidden items-center justify-center overflow-hidden bg-slate-900 p-12 lg:flex lg:w-1/2">
-            <div class="absolute inset-0 bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-950"></div>
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-700 via-blue-800 to-slate-950"></div>
             <div class="absolute inset-0 opacity-20"
                  style="background-image: radial-gradient(circle at 20% 20%, #ffffff 0, transparent 35%), radial-gradient(circle at 80% 80%, #ffffff 0, transparent 30%);"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/50 to-transparent"></div>
