@@ -98,7 +98,7 @@ APP_NAME="Sistem Absensi Karyawan"
 APP_ENV=local
 APP_KEY=base64:... # Already generated
 APP_DEBUG=true
-APP_URL=http://localhost:8000
+APP_URL=http://localhost:8001
 APP_TIMEZONE=Asia/Jakarta
 
 APP_LOCALE=id
@@ -195,7 +195,7 @@ php artisan storage:link
 # Start Laravel development server
 php artisan serve
 
-# Server will start at http://localhost:8000
+# Server will start at http://localhost:8001
 ```
 
 Atau akses via MAMP/XAMPP:
@@ -367,7 +367,7 @@ chown -R _www:_www storage bootstrap/cache
 ##  Testing Installation
 
 ### 1. Test Login
-- Navigate to `http://localhost:8000`
+- Navigate to `http://localhost:8001`
 - Login dengan credentials admin
 - Verify redirect ke admin dashboard
 

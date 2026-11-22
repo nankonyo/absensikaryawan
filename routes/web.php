@@ -62,6 +62,8 @@ Route::middleware(['auth', 'role:direksi,admin'])->prefix('admin')->name('admin.
         ->except(['show']);
     Route::resource('leave-types', App\Http\Controllers\Admin\LeaveTypeController::class)
         ->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('holidays', App\Http\Controllers\Admin\HolidayController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
     Route::resource('attendance-reasons', App\Http\Controllers\Admin\AttendanceReasonController::class)
         ->only(['index', 'store', 'update', 'destroy']);
 

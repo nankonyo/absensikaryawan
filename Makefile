@@ -2,8 +2,8 @@ SHELL := /usr/bin/env bash
 
 RUN_DIR := .run
 LOG_DIR := $(RUN_DIR)/logs
-APP_PORT := 8000
-VITE_PORT := 5173
+APP_PORT := 8001
+VITE_PORT := 5175
 
 define confirm
 	@read -p "$(1) [y/N] " -n 1 -r ans; echo; \

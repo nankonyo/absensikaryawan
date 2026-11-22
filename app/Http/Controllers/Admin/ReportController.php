@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\AttendanceReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
-use Maatwebsite\Excel\Facades\Excel;
+use App\Services\AttendanceReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
 {
@@ -27,18 +29,20 @@ class ReportController extends Controller
         $startDate = Carbon::parse($request->start_date);
         $endDate = Carbon::parse($request->end_date);
 
-        $attendances = Attendance::with('user')
-            ->whereBetween('date', [$startDate, $endDate])
-            ->orderBy('date', 'desc')
-            ->get();
-
         if ($request->format === 'pdf') {
+            $attendances = Attendance::with('user')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->orderBy('date', 'desc')
+                ->get();
+
             $pdf = Pdf::loadView('reports.attendance-pdf', compact('attendances', 'startDate', 'endDate'));
-            return $pdf->download('attendance-report-' . $startDate->format('Y-m-d') . '-to-' . $endDate->format('Y-m-d') . '.pdf');
-        } else {
-            // Excel export would go here
-            // return Excel::download(new AttendanceExport($attendances), 'attendance-report.xlsx');
-            return back()->with('info', __('ui.excel_coming_soon'));
+
+            return $pdf->download('attendance-report-'.$startDate->format('Y-m-d').'-to-'.$endDate->format('Y-m-d').'.pdf');
         }
+
+        $report = app(AttendanceReportService::class)->build($startDate, $endDate);
+        $fileName = 'laporan-absensi-'.$startDate->format('Y-m-d').'-sd-'.$endDate->format('Y-m-d').'.xlsx';
+
+        return Excel::download(new AttendanceReportExport($report), $fileName);
     }
 }
