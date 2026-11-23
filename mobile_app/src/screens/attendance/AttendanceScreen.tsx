@@ -28,6 +28,7 @@ export const AttendanceScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [reasonId, setReasonId] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
+  const [distanceToOffice, setDistanceToOffice] = useState<number | null>(null);
   const positionWatch = useRef<Location.LocationSubscription | null>(null);
   const lastPosition = useRef<Location.LocationObject | null>(null);
 
@@ -205,12 +206,44 @@ export const AttendanceScreen = () => {
     return asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : undefined;
   };
 
+  const officeDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const toRad = (value: number) => (value * Math.PI) / 180;
+    const earthRadius = 6371000;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+
+    return Math.round(earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  };
+
   const submit = async (mode: 'in' | 'out') => {
     setSubmitting(true);
     try {
-      // GPS dan kamera verifikasi berjalan paralel supaya tidak saling menunggu.
-      const locationPromise = locate();
-      locationPromise.catch(() => {});
+      // Cek lokasi lebih dulu supaya saat di luar radius user memilih alasan
+      // sebelum mengambil selfie (tidak perlu foto ulang).
+      const location = await locate();
+
+      // Verifikasi lokasi juga di client: WFO di luar radius wajib memilih alasan.
+      // Server tetap menjadi penentu akhir (lihat AttendanceService).
+      const office = data?.office;
+      const distance =
+        office && isWfo
+          ? officeDistance(location.latitude, location.longitude, office.latitude, office.longitude)
+          : null;
+
+      setDistanceToOffice(distance);
+
+      if (distance !== null && office && distance > office.radius && !reasonId) {
+        Alert.alert(
+          'Di luar zona kantor',
+          `Anda berada ${distance} m dari ${office.name} (batas ${office.radius} m). Pilih alasan kehadiran terlebih dahulu.`,
+        );
+
+        return;
+      }
+
       const face = await captureFace(mode);
 
       if (face.status === 'cancelled') {
@@ -230,8 +263,6 @@ export const AttendanceScreen = () => {
         if (!photo) return;
       }
 
-      const location = await locationPromise;
-
       const payload: Record<string, unknown> = {
         ...location,
         attendance_reason_id: reasonId ?? undefined,
@@ -246,6 +277,7 @@ export const AttendanceScreen = () => {
       Alert.alert('Berhasil', response.data.message ?? 'Presensi tersimpan.');
       setNotes('');
       setReasonId(null);
+      setDistanceToOffice(null);
       await load();
     } catch (err) {
       Alert.alert('Presensi gagal', apiMessage(err, 'Tidak dapat menyimpan presensi.'));
@@ -312,6 +344,19 @@ export const AttendanceScreen = () => {
                 <Text style={styles.muted}>
                   Jam kerja {data?.work_start_time} - {data?.work_end_time}
                 </Text>
+                {isWfo && distanceToOffice !== null ? (
+                  <Text
+                    style={[
+                      styles.muted,
+                      distanceToOffice > (data?.office?.radius ?? 0) && styles.outsideText,
+                    ]}
+                  >
+                    Jarak Anda {distanceToOffice} m —{' '}
+                    {distanceToOffice > (data?.office?.radius ?? 0)
+                      ? 'di luar zona, pilih alasan'
+                      : 'di dalam zona kantor'}
+                  </Text>
+                ) : null}
               </View>
             </View>
           </Card>
@@ -319,7 +364,7 @@ export const AttendanceScreen = () => {
           <Card style={{ gap: spacing.md }}>
             {isWfo ? (
               <>
-                <Text style={styles.sectionLabel}>Alasan kehadiran (jika di luar zona)</Text>
+                <Text style={styles.sectionLabel}>Alasan kehadiran (wajib jika di luar zona)</Text>
                 <View style={styles.chips}>
                   {(data?.reasons ?? []).map((reason) => (
                     <TouchableOpacity
@@ -419,6 +464,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   officeName: { fontWeight: '700', color: colors.text },
+  outsideText: { color: colors.danger, fontWeight: '600' },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: colors.text },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.full, paddingHorizontal: 12, paddingVertical: 6 },

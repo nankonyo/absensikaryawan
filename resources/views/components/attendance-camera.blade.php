@@ -50,6 +50,21 @@
                 <span x-show="fallbackMode" x-cloak>{{ __('ui.face_auto_fallback') }}</span>
             </p>
 
+            <!-- Permission gate: camera/location (iOS Safari) -->
+            <div x-show="cameraPermissionNeeded || locationPermissionNeeded" x-cloak
+                 class="absolute inset-0 z-[45] flex flex-col items-center justify-center gap-4 bg-black/85 p-6 text-center text-white">
+                <p class="text-base font-semibold">Izinkan akses untuk melanjutkan presensi</p>
+                <p class="max-w-sm text-sm text-white/80">Aktifkan kamera dan lokasi. Jika prompt tidak muncul, buka Pengaturan iPhone → Safari → Kamera/Lokasi.</p>
+                <button type="button" x-show="cameraPermissionNeeded" @click="requestCamera()"
+                        class="w-full max-w-xs rounded-full {{ $button }} px-6 py-3 font-semibold text-white">
+                    Izinkan Kamera
+                </button>
+                <button type="button" x-show="locationPermissionNeeded" @click="requestLocation()"
+                        class="w-full max-w-xs rounded-full bg-slate-700 px-6 py-3 font-semibold text-white">
+                    Izinkan Lokasi
+                </button>
+            </div>
+
             <!-- Outside-zone reason picker: hidden until the captured location is outside the radius -->
             <div x-show="needsReason" x-cloak class="absolute inset-0 z-40 flex flex-col bg-white p-5 text-gray-900">
                 <div class="shrink-0">
@@ -154,6 +169,9 @@
             previousHtmlOverflow: '',
             previousBodyOverflow: '',
             isDestroyed: false,
+            cameraPermissionNeeded: false,
+            locationPermissionNeeded: false,
+            locationReady: false,
 
             async init() {
                 // Kunci scroll: kamera menutup seluruh viewport, termasuk navbar.
@@ -172,16 +190,12 @@
             },
 
             destroy() {
+                this.isDestroyed = true;
+
                 if (this._onResize) {
                     window.removeEventListener('resize', this._onResize);
                 }
 
-                this.stopFaceAutoCapture();
-                this.stopCamera();
-            },
-
-            destroy() {
-                this.isDestroyed = true;
                 this.stopFaceAutoCapture();
                 this.stopCamera();
                 document.documentElement.style.overflow = this.previousHtmlOverflow || '';
@@ -222,9 +236,42 @@
                     this.$refs.video.addEventListener('loadedmetadata', () => this.fitGuide(), { once: true });
                     this.fitGuide();
                     await this.$refs.video.play().catch(() => {});
+                    this.cameraPermissionNeeded = false;
                 } catch (error) {
-                    this.toast(MSG.cameraError.replace('__MSG__', error.message));
+                    if (error && (error.name === 'NotAllowedError' || error.name === 'SecurityError')) {
+                        this.cameraPermissionNeeded = true;
+                    } else {
+                        this.toast(MSG.cameraError.replace('__MSG__', error.message));
+                    }
                 }
+            },
+
+            async requestCamera() {
+                this.cameraPermissionNeeded = false;
+                await this.startCamera();
+            },
+
+            requestLocation() {
+                if (!navigator.geolocation) {
+                    this.toast(MSG.geolocationUnsupported);
+
+                    return;
+                }
+
+                this.locationPermissionNeeded = false;
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        this.lastPosition = position;
+                        this.locationReady = true;
+                    },
+                    (error) => {
+                        if (error && error.code === 1) {
+                            this.locationPermissionNeeded = true;
+                        }
+                        this.toast(MSG.locationError.replace('__MSG__', error.message));
+                    },
+                    { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 }
+                );
             },
 
             cameraAvailable() {
@@ -578,7 +625,12 @@
                             this.lastPosition = position;
                             resolve(position);
                         },
-                        (error) => reject(new Error(MSG.locationError.replace('__MSG__', error.message))),
+                        (error) => {
+                            if (error && error.code === 1) {
+                                this.locationPermissionNeeded = true;
+                            }
+                            reject(new Error(MSG.locationError.replace('__MSG__', error.message)));
+                        },
                         { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 }
                     );
                 });
@@ -594,8 +646,14 @@
                         if (!this.lastPosition || position.coords.accuracy <= this.lastPosition.coords.accuracy) {
                             this.lastPosition = position;
                         }
+                        this.locationReady = true;
+                        this.locationPermissionNeeded = false;
                     },
-                    () => {},
+                    (error) => {
+                        if (error && error.code === 1) {
+                            this.locationPermissionNeeded = true;
+                        }
+                    },
                     { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 }
                 );
             },
