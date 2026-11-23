@@ -2,7 +2,9 @@ import { api } from './client';
 import type {
   ActivityLog,
   Attendance,
+  AttendanceReport,
   ContentItem,
+  Holiday,
   Leave,
   LeaveType,
   Project,
@@ -122,6 +124,16 @@ export const contentApi = {
   videos: () => api.get<{ items: ContentItem[] }>('/contents/videos'),
   dokumentasi: () => api.get<{ items: ContentItem[] }>('/contents/dokumentasi'),
   pengumuman: () => api.get<{ items: ContentItem[] }>('/contents/pengumuman'),
+};
+
+export const holidayApi = {
+  index: (params?: { month?: string }) =>
+    api.get<{ month: string; month_label: string; holidays: Holiday[] }>('/holidays', { params }),
+};
+
+export const reportApi = {
+  attendance: (params: { start_date: string; end_date: string }) =>
+    api.get<AttendanceReport>('/reports/attendance', { params }),
 };
 
 export const profileApi = {

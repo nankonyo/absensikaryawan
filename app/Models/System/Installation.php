@@ -323,6 +323,18 @@ class Installation extends Model
             });
         }
 
+        if (! Schema::hasTable('holidays')) {
+            Schema::create('holidays', function (Blueprint $table) {
+                $table->id();
+                $table->date('date')->unique();
+                $table->string('name');
+                $table->string('type', 20)->default('national');
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+                $table->index('date');
+            });
+        }
+
         InternalAppInstallation::ensureForRst();
     }
 }

@@ -112,6 +112,47 @@ export type ActivityLog = {
   task_title?: string | null;
 };
 
+export type Holiday = {
+  id: number;
+  date: string;
+  name: string;
+  type: 'national' | 'company' | 'collective' | string;
+  type_label?: string;
+  is_active?: boolean;
+};
+
+export type AttendanceReportRow = {
+  employee_id: string | number;
+  name: string;
+  normal_work_days: number;
+  actual_work_days: number;
+  absent: number;
+  late_hours: number;
+  duty_city: number;
+  wfh: number;
+  training: number;
+  duty_out_of_town: number;
+  permit: number;
+  leave: number;
+  sick_leave: number;
+  compensation_hours: number;
+  collective_leave: number;
+  company_holiday: number;
+  national_holiday: number;
+};
+
+export type AttendanceReport = {
+  start_date: string;
+  end_date: string;
+  normal_work_days: number;
+  employee_count: number;
+  rows: AttendanceReportRow[];
+  totals: Record<
+    Exclude<keyof AttendanceReportRow, 'employee_id' | 'name' | 'normal_work_days' | 'actual_work_days'>,
+    number
+  >;
+};
+
 export type ContentItem = {
   id: number;
   title: string;

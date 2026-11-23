@@ -3,27 +3,28 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\AttendanceReason;
+use App\Models\Branch;
+use App\Models\Department;
+use App\Models\Holiday;
 use App\Models\Internal\Announcement;
 use App\Models\Internal\Credential;
 use App\Models\Internal\Dokumentasi;
 use App\Models\Internal\OrgNode;
 use App\Models\Internal\VideoTutorial;
-use App\Models\Branch;
-use App\Models\Department;
 use App\Models\LeaveType;
 use App\Models\OfficeLocation;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\Setting;
-use App\Models\Attendance;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\UserAttribute;
 use App\Models\UserAttributeValue;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -87,6 +88,11 @@ class AdminResourceController extends Controller
                 $data['contract_end_date'] = $model->contract?->end_date?->format('Y-m-d');
                 $data['contract_document_url'] = $model->contract_document_url;
                 $data['attribute_values'] = $model->attributeValues->pluck('value', 'user_attribute_id')->all();
+            }
+
+            if ($resource === 'holidays') {
+                $data['date'] = $model->date?->toDateString();
+                $data['type_label'] = $model->typeLabel();
             }
 
             return array_merge($data, [
@@ -257,6 +263,21 @@ class AdminResourceController extends Controller
                     ['name' => 'requires_attachment', 'label' => 'Wajib Lampiran', 'type' => 'switch'],
                     ['name' => 'requires_reason', 'label' => 'Wajib Alasan', 'type' => 'switch'],
                     ['name' => 'deducts_quota', 'label' => 'Mengurangi Kuota', 'type' => 'switch'],
+                    ['name' => 'is_active', 'label' => 'Aktif', 'type' => 'switch'],
+                ],
+            ],
+            'holidays' => [
+                'title' => 'Kalender Hari Libur', 'model' => Holiday::class, 'read_only' => false,
+                'search' => ['name'], 'title_field' => 'name', 'subtitle_field' => 'date',
+                'order_by' => 'date', 'order_dir' => 'desc',
+                'fields' => [
+                    ['name' => 'date', 'label' => 'Tanggal (Y-m-d)', 'type' => 'date', 'required' => true, 'unique' => true],
+                    ['name' => 'name', 'label' => 'Nama Hari Libur', 'type' => 'text', 'required' => true],
+                    ['name' => 'type', 'label' => 'Jenis Libur', 'type' => 'select', 'options' => [
+                        ['value' => 'national', 'label' => 'Libur Nasional'],
+                        ['value' => 'company', 'label' => 'Libur Perusahaan'],
+                        ['value' => 'collective', 'label' => 'Cuti Bersama'],
+                    ]],
                     ['name' => 'is_active', 'label' => 'Aktif', 'type' => 'switch'],
                 ],
             ],
@@ -464,8 +485,12 @@ class AdminResourceController extends Controller
                 default => 'string',
             };
             if ($field['type'] === 'file') {
-                if (! empty($field['mimes'])) $rule[] = 'mimes:'.$field['mimes'];
-                if (! empty($field['max'])) $rule[] = 'max:'.$field['max'];
+                if (! empty($field['mimes'])) {
+                    $rule[] = 'mimes:'.$field['mimes'];
+                }
+                if (! empty($field['max'])) {
+                    $rule[] = 'max:'.$field['max'];
+                }
             }
             if (($field['unique'] ?? false) && ! empty($config['model'])) {
                 $table = (new $config['model'])->getTable();
@@ -477,6 +502,10 @@ class AdminResourceController extends Controller
         if (($config['model'] ?? null) === User::class) {
             $rules['attributes'] = ['nullable', 'array'];
             $rules['attributes.*'] = ['nullable', 'string', 'max:1000'];
+        }
+
+        if (($config['model'] ?? null) === Holiday::class) {
+            $rules['type'][] = Rule::in(Holiday::TYPES);
         }
 
         return $request->validate($rules);
@@ -511,6 +540,7 @@ class AdminResourceController extends Controller
             }
             if ($name === 'attributes') {
                 unset($data[$name]);
+
                 continue;
             }
             if ($resource === 'settings' && $name === 'value' && ($data[$name] ?? null) === '********') {
@@ -537,6 +567,7 @@ class AdminResourceController extends Controller
         foreach ((array) $request->input('attributes', []) as $attributeId => $value) {
             if ($value === null || $value === '') {
                 UserAttributeValue::where('user_id', $user->id)->where('user_attribute_id', $attributeId)->delete();
+
                 continue;
             }
 

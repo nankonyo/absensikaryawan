@@ -2,6 +2,8 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MoreScreen } from '../screens/MoreScreen';
 import { AdminResourceScreen } from '../screens/admin/AdminResourceScreen';
+import { HolidayScreen } from '../screens/holiday/HolidayScreen';
+import { ReportScreen } from '../screens/report/ReportScreen';
 import type { MoreStackParamList } from './types';
 import { colors } from '../theme';
 
@@ -23,5 +25,7 @@ export const MoreNavigator = () => (
       component={AdminResourceScreen}
       options={({ route }) => ({ title: route.params.title })}
     />
+    <Stack.Screen name="Holiday" component={HolidayScreen} options={{ title: 'Kalender Hari Libur' }} />
+    <Stack.Screen name="Report" component={ReportScreen} options={{ title: 'Laporan Absensi' }} />
   </Stack.Navigator>
 );

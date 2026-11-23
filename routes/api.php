@@ -1,16 +1,18 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityController;
-use App\Http\Controllers\Api\ApprovalController;
-use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AdminResourceController;
 use App\Http\Controllers\Api\AppInfoController;
+use App\Http\Controllers\Api\ApprovalController;
+use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\LeaveController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -107,6 +109,11 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
         Route::get('pengumuman', [ContentController::class, 'pengumuman']);
     });
 
+    Route::get('holidays', [HolidayController::class, 'index']);
+
+    Route::prefix('reports')->group(function () {
+        Route::get('attendance', [ReportController::class, 'attendance']);
+    });
 
     Route::prefix('admin/resources')->group(function () {
         Route::get('{resource}/schema', [AdminResourceController::class, 'schema']);

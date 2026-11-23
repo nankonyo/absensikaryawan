@@ -26,6 +26,7 @@ const adminGroups = [
       ['Verifikasi Presensi', 'attendance-verifications'],
       ['Cuti', 'leaves'],
       ['Jenis Cuti', 'leave-types'],
+      ['Kalender Hari Libur', 'holidays'],
       ['Alasan Kehadiran', 'attendance-reasons'],
       ['Lokasi Kantor', 'office-locations'],
     ],
@@ -58,6 +59,7 @@ const staffItems: [string, string][] = [
   ['Profil Saya', 'Profile'],
   ['Presensi Saya', 'Attendance'],
   ['Cuti Saya', 'Leave'],
+  ['Kalender Hari Libur', 'Holiday'],
   ['Project & Aktivitas', 'InternalTab'],
 ];
 
@@ -67,6 +69,16 @@ export const MoreScreen = () => {
   const isAdmin = Boolean(user?.is_admin);
 
   const openResource = (label: string, resource: string) => {
+    if (resource === 'holidays') {
+      navigation.navigate('Holiday');
+      return;
+    }
+
+    if (resource === 'reports') {
+      navigation.navigate('Report');
+      return;
+    }
+
     navigation.navigate('AdminResource', { resource, title: label });
   };
 
@@ -103,7 +115,11 @@ export const MoreScreen = () => {
                 <TouchableOpacity
                   key={tab}
                   style={[styles.item, index > 0 && styles.itemBorder]}
-                  onPress={() => navigation.getParent()?.navigate(tab)}
+                  onPress={() =>
+                    tab === 'Holiday'
+                      ? navigation.navigate('Holiday')
+                      : navigation.getParent()?.navigate(tab)
+                  }
                 >
                   <Text style={styles.itemLabel}>{label}</Text>
                   <Ionicons name="chevron-forward" size={16} color={colors.subtle} />

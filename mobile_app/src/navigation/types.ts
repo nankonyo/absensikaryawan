@@ -22,4 +22,6 @@ export type InternalStackParamList = {
 export type MoreStackParamList = {
   MoreHome: undefined;
   AdminResource: { resource: string; title: string };
+  Holiday: undefined;
+  Report: undefined;
 };
