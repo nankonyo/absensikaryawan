@@ -23,7 +23,6 @@ class ActivityController extends Controller
 
     public function index(Request $request)
     {
-        abort_unless($this->isAdmin(), 403);
         [$query, $filters] = $this->buildQuery($request);
 
         $items = $query->paginate(30)->withQueryString();
@@ -35,9 +34,15 @@ class ActivityController extends Controller
             ->orderBy('nama')->get();
         $projects = DB::table('internal_projects')->orderBy('name')->get(['id', 'name']);
 
-        $summary = DB::table('internal_activity_logs')
+        $summaryQuery = DB::table('internal_activity_logs')
             ->select('user_id', DB::raw('COUNT(*) as total'))
-            ->whereNotNull('user_id')->groupBy('user_id')->pluck('total', 'user_id');
+            ->whereNotNull('user_id');
+
+        if (! $this->isAdmin()) {
+            $summaryQuery->where('user_id', auth()->id());
+        }
+
+        $summary = $summaryQuery->groupBy('user_id')->pluck('total', 'user_id');
 
         return view('internal-app.activity.index', compact('items', 'users', 'projects', 'filters', 'summary'));
     }
@@ -191,6 +196,11 @@ class ActivityController extends Controller
     {
         $q = trim((string) $request->input('q', ''));
         $userId = (int) $request->input('user_id', 0);
+
+        // Staff/atasan hanya boleh melihat aktivitas miliknya sendiri.
+        if (! $this->isAdmin()) {
+            $userId = (int) auth()->id();
+        }
         $projectId = (int) $request->input('project_id', 0);
         $from = $request->input('from');
         $to = $request->input('to');

@@ -1,11 +1,18 @@
 @extends('internal-app.layouts.app')
-@section('title', 'Aktivitas Karyawan')
-@section('subtitle', 'Laporan aktivitas project management per karyawan')
+@php
+    $isAdmin = auth()->user()?->isAdmin();
+@endphp
+@section('title')
+    {{ $isAdmin ? 'Aktivitas Karyawan' : 'Aktivitas Saya' }}
+@endsection
+@section('subtitle')
+    {{ $isAdmin ? 'Laporan aktivitas project management per karyawan' : 'Aktivitas project management Anda' }}
+@endsection
 
 @section('body')
 @php $phases = ['Planning','System Analysis','Design','Programming','Testing','Implementation','Maintenance','Reporting','Meeting','Marketing','Training']; @endphp
 <div x-data="{ add: false }" class="space-y-5">
-    <div class="grid gap-4 sm:grid-cols-3">
+    <div class="grid gap-4 {{ $isAdmin ? 'sm:grid-cols-3' : 'sm:grid-cols-2' }}">
         <div class="ia-card p-4">
             <p class="text-xs font-semibold text-slate-400">Total Aktivitas</p>
             <p class="mt-1 text-2xl font-black text-slate-800">{{ number_format($items->total()) }}</p>
@@ -14,20 +21,24 @@
             <p class="text-xs font-semibold text-slate-400">Karyawan Aktif</p>
             <p class="mt-1 text-2xl font-black text-blue-600">{{ $summary->count() }}</p>
         </div>
+        @if($isAdmin)
         <div class="ia-card p-4 flex flex-col justify-center gap-2">
             <button @click="add = true" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><i class="fa-solid fa-plus mr-1"></i>Input Aktivitas</button>
             <a href="{{ route('internal.activities.export', $filters) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-semibold text-white"><i class="fa-solid fa-file-excel mr-1"></i>Export Laporan</a>
         </div>
+        @endif
     </div>
 
     <form method="get" class="ia-card flex flex-wrap items-end gap-2 p-4">
         <div><label class="text-[11px] font-semibold text-slate-500">Cari</label><input name="q" value="{{ $filters['q'] }}" placeholder="Deskripsi / project / user" class="w-56 rounded-lg border border-slate-200 px-3 py-2 text-sm"></div>
+        @if($isAdmin)
         <div><label class="text-[11px] font-semibold text-slate-500">Karyawan</label>
             <select name="user_id" data-ajax-url="{{ route('internal.ajax.options', ['type' => 'users']) }}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
                 <option value="">Semua</option>
                 @foreach($users as $u)<option value="{{ $u->id }}" @selected($filters['userId']==$u->id)>{{ $u->nama }}</option>@endforeach
             </select>
         </div>
+        @endif
         <div><label class="text-[11px] font-semibold text-slate-500">Project</label>
             <select name="project_id" data-ajax-url="{{ route('internal.ajax.options', ['type' => 'projects']) }}" class="rounded-lg border border-slate-200 px-3 py-2 text-sm">
                 <option value="">Semua</option>
@@ -62,6 +73,7 @@
         <div class="border-t border-slate-100 p-4">{{ $items->links() }}</div>
     </div>
 
+    @if($isAdmin)
     <div x-show="add" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
         <div class="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl" @click.outside="add=false">
             <div class="flex items-center justify-between"><h3 class="font-bold">Input Aktivitas Karyawan</h3><button @click="add=false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button></div>
@@ -90,6 +102,7 @@
             </form>
         </div>
     </div>
+    @endif
 </div>
 
 <script>
