@@ -125,7 +125,7 @@
                 </div>
 
                 <x-ia.switch label="Face Recognition" description="Wajibkan verifikasi wajah saat presensi" x-model="form.face_recognition_enabled" />
-                <x-ia.switch label="Face Recognition Mobile" description="Aktifkan jika mobile sudah bisa menghitung skor wajah" x-model="form.mobile_face_recognition_enabled" />
+                <x-ia.switch label="Face Recognition Mobile" description="Wajibkan verifikasi wajah di absensi mobile (engine sama dengan web)" x-model="form.mobile_face_recognition_enabled" />
 
                 <div class="space-y-1.5">
                     <label class="block text-sm font-semibold text-slate-700">Threshold Face Recognition (%)</label>

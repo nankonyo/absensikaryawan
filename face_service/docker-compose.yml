@@ -1,0 +1,14 @@
+services:
+  face-service:
+    build: .
+    image: absensi-face:latest
+    container_name: absensi-face
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9997:9997"
+    environment:
+      FACE_MODEL: buffalo_s
+      FACE_THRESHOLD: "0.40"
+      HOME: /root
+    volumes:
+      - /home/www/.insightface:/root/.insightface:ro

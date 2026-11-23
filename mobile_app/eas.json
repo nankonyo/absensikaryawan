@@ -14,7 +14,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://31.97.187.132:9998/api/mobile"
+        "EXPO_PUBLIC_API_URL": "https://hr.rajasakti.co.id/api/mobile"
       }
     },
     "production": {
@@ -23,7 +23,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://31.97.187.132:9998/api/mobile"
+        "EXPO_PUBLIC_API_URL": "https://hr.rajasakti.co.id/api/mobile"
       }
     }
   },

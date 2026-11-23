@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../components/Screen';
@@ -19,6 +19,7 @@ export const DashboardScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedAvatarUri, setFailedAvatarUri] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -85,9 +86,17 @@ export const DashboardScreen = () => {
             {user?.unit ? ` · ${user.unit}` : ''}
           </Text>
         </View>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{(user?.name ?? '?').slice(0, 1).toUpperCase()}</Text>
-        </View>
+        {user?.avatar_url && failedAvatarUri !== user.avatar_url ? (
+          <Image
+            source={{ uri: user.avatar_url }}
+            style={styles.avatarImage}
+            onError={() => setFailedAvatarUri(user.avatar_url ?? null)}
+          />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{(user?.name ?? '?').slice(0, 1).toUpperCase()}</Text>
+          </View>
+        )}
       </View>
 
       {error ? (
@@ -204,6 +213,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: colors.primarySoft,
   },
   avatarText: { fontSize: 18, fontWeight: '800', color: colors.primary },
   attendanceCard: { gap: spacing.md },

@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { BottomTabs } from './BottomTabs';
+import { FaceCaptureProvider } from '../components/FaceCaptureProvider';
 import { colors, spacing } from '../theme';
 
 const navTheme = {
@@ -39,9 +40,11 @@ export const RootNavigator = () => (
   <SafeAreaProvider>
     <StatusBar style="light" />
     <AuthProvider>
-      <NavigationContainer theme={navTheme}>
-        <Root />
-      </NavigationContainer>
+      <FaceCaptureProvider>
+        <NavigationContainer theme={navTheme}>
+          <Root />
+        </NavigationContainer>
+      </FaceCaptureProvider>
     </AuthProvider>
   </SafeAreaProvider>
 );

@@ -5,6 +5,11 @@
     $companyAddress = \App\Models\Setting::get('company_address');
     $playStoreUrl = \App\Models\Setting::get('play_store_url');
     $appStoreUrl = \App\Models\Setting::get('app_store_url');
+    $apkVersion = null;
+
+    if ($playStoreUrl && preg_match('/-v?(\d+\.\d+\.\d+)\.apk(?:\?|$)/i', $playStoreUrl, $versionMatch)) {
+        $apkVersion = $versionMatch[1];
+    }
 @endphp
 
 <x-guest-layout :full="true">
@@ -158,10 +163,10 @@
                             @if ($playStoreUrl)
                                 <a href="{{ $playStoreUrl }}" target="_blank" rel="noopener"
                                    class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-900 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-slate-800">
-                                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                                        <path d="M3.6 2.4c-.3.2-.5.5-.5.9v17.4c0 .4.2.7.5.9l9.1-9.6L3.6 2.4zm10.3 8.8l2.8-3-9.7-5.5 6.9 8.5zm0 1.6l-6.9 8.5 9.7-5.5-2.8-3zm1.4-1.6l3.2 3.4c.7-.4 1.1-1 1.1-1.8 0-.8-.4-1.4-1.1-1.8l-3.2 3.4-2.8-3-1.4 1.6 4.2 4.4 4.2-4.4-1.4-1.6-2.8 3z"/>
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
                                     </svg>
-                                    Google Play
+                                    Download APK{{ $apkVersion ? ' v'.$apkVersion : '' }}
                                 </a>
                             @endif
                             @if ($appStoreUrl)
@@ -174,6 +179,9 @@
                                 </a>
                             @endif
                         </div>
+                        @if ($apkVersion)
+                            <p class="text-center text-[11px] text-slate-400">Versi aplikasi terbaru: v{{ $apkVersion }}</p>
+                        @endif
                     </div>
                 @endif
 

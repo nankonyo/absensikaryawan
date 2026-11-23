@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+
+    'face_service' => [
+        'url' => env('FACE_SERVICE_URL', 'http://127.0.0.1:9997'),
+        'threshold' => env('FACE_SERVICE_THRESHOLD', 0.40),
+        'timeout' => env('FACE_SERVICE_TIMEOUT', 5),
+    ],
 ];

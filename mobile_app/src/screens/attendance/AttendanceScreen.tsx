@@ -1,17 +1,23 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Linking, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/Screen';
 import { Badge, Button, Card, EmptyState, SectionTitle } from '../../components/ui';
 import { Field } from '../../components/Field';
+import { useFaceCapture } from '../../components/FaceCaptureProvider';
 import { attendanceApi } from '../../api/endpoints';
 import { apiMessage } from '../../api/client';
 import type { Attendance } from '../../types';
 import { colors, radius, spacing, statusColor } from '../../theme';
 
 type TodayData = Awaited<ReturnType<typeof attendanceApi.today>>['data'];
+
+type FaceOutcome =
+  | { status: 'captured'; photoData: string; faceScore: number }
+  | { status: 'cancelled' }
+  | { status: 'unavailable'; message?: string };
 
 export const AttendanceScreen = () => {
   const [tab, setTab] = useState<'today' | 'history'>('today');
@@ -22,6 +28,79 @@ export const AttendanceScreen = () => {
   const [submitting, setSubmitting] = useState(false);
   const [reasonId, setReasonId] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
+  const positionWatch = useRef<Location.LocationSubscription | null>(null);
+  const lastPosition = useRef<Location.LocationObject | null>(null);
+
+  const ensureCameraPermission = useCallback(async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+    if (permission.granted) {
+      return true;
+    }
+
+    Alert.alert(
+      'Izin kamera diperlukan',
+      'Aktifkan izin kamera untuk aplikasi ini agar verifikasi wajah dapat berjalan.',
+      [
+        { text: 'Batal', style: 'cancel' },
+        { text: 'Buka Pengaturan', onPress: () => Linking.openSettings() },
+      ],
+    );
+
+    return false;
+  }, []);
+
+  const { startFaceCapture } = useFaceCapture();
+  const faceRequired = Boolean(data?.face_verification_required);
+
+  const captureFace = useCallback(
+    async (mode: 'in' | 'out'): Promise<FaceOutcome> => {
+      const allowed = await ensureCameraPermission();
+
+      if (!allowed) {
+        return { status: 'cancelled' };
+      }
+
+      const result = await startFaceCapture(mode);
+
+      if (result.status === 'captured') {
+        return {
+          status: 'captured',
+          photoData: result.photoData,
+          faceScore: result.faceScore,
+        };
+      }
+
+      if (result.status === 'cancelled') {
+        return { status: 'cancelled' };
+      }
+
+      if (result.status === 'no_avatar') {
+        if (faceRequired) {
+          Alert.alert(
+            'Verifikasi wajah',
+            'Avatar wajah belum diatur. Hubungi admin untuk mengunggah foto wajah Anda.',
+          );
+
+          return { status: 'cancelled' };
+        }
+
+        return { status: 'unavailable' };
+      }
+
+      if (faceRequired) {
+        Alert.alert(
+          'Verifikasi wajah gagal',
+          `${result.message}\n\nPastikan izin kamera aktif, lalu coba lagi.`,
+        );
+
+        return { status: 'cancelled' };
+      }
+
+      return { status: 'unavailable' };
+    },
+    [ensureCameraPermission, faceRequired, startFaceCapture],
+  );
 
   const load = useCallback(async () => {
     try {
@@ -43,26 +122,70 @@ export const AttendanceScreen = () => {
     load();
   }, [load]);
 
+  const startPositionWatch = useCallback(async () => {
+    if (positionWatch.current) return;
+
+    const permission = await Location.getForegroundPermissionsAsync();
+
+    if (!permission.granted) return;
+
+    const subscription = await Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.High,
+        timeInterval: 10000,
+        distanceInterval: 5,
+      },
+      (position) => {
+        lastPosition.current = position;
+      },
+    );
+
+    if (positionWatch.current) {
+      subscription.remove();
+    } else {
+      positionWatch.current = subscription;
+    }
+  }, []);
+
+  useEffect(() => {
+    startPositionWatch().catch(() => {});
+
+    return () => {
+      positionWatch.current?.remove();
+      positionWatch.current = null;
+    };
+  }, [startPositionWatch]);
+
   const locate = async () => {
     const permission = await Location.requestForegroundPermissionsAsync();
+
     if (permission.status !== 'granted') {
       throw new Error('Izin lokasi ditolak. Aktifkan GPS dan izin lokasi.');
     }
 
-    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-    const [address] = await Location.reverseGeocodeAsync({
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-    });
+    startPositionWatch().catch(() => {});
 
-    const addressText = address
-      ? [address.street, address.district, address.city, address.region].filter(Boolean).join(', ')
-      : undefined;
+    const cached = lastPosition.current;
+    const age = cached ? Date.now() - (cached.timestamp || 0) : Infinity;
+    const accuracy = cached?.coords.accuracy ?? null;
+    const usable = Boolean(cached) && age < 60000 && (accuracy === null || accuracy <= 100);
+
+    // Pakai fix GPS terbaru dari watch; kalau tidak ada, baru minta posisi baru.
+    const position = usable && cached
+      ? cached
+      : await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+
+    lastPosition.current = position;
+
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
 
     return {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      address: addressText,
+      latitude,
+      longitude,
+      // Reverse geocode dibuang: server hanya butuh koordinat, dan ini
+      // mempercepat proses absensi secara signifikan.
+      address: `${latitude}, ${longitude}`,
     };
   };
 
@@ -85,8 +208,29 @@ export const AttendanceScreen = () => {
   const submit = async (mode: 'in' | 'out') => {
     setSubmitting(true);
     try {
-      const location = await locate();
-      const photo = await takePhoto();
+      // GPS dan kamera verifikasi berjalan paralel supaya tidak saling menunggu.
+      const locationPromise = locate();
+      locationPromise.catch(() => {});
+      const face = await captureFace(mode);
+
+      if (face.status === 'cancelled') {
+        return;
+      }
+
+      let photo: string | undefined;
+      let faceScore: number | undefined;
+
+      if (face.status === 'captured') {
+        photo = face.photoData;
+        faceScore = face.faceScore;
+      } else {
+        // Avatar belum diatur atau kamera verifikasi tidak tersedia:
+        // pakai kamera biasa, server tetap yang menentukan validasi wajah.
+        photo = await takePhoto();
+        if (!photo) return;
+      }
+
+      const location = await locationPromise;
 
       const payload: Record<string, unknown> = {
         ...location,
@@ -94,6 +238,7 @@ export const AttendanceScreen = () => {
         notes: notes || undefined,
       };
       if (photo) payload.photo_data = photo;
+      if (faceScore !== undefined) payload.face_score = faceScore;
 
       const response =
         mode === 'in' ? await attendanceApi.checkIn(payload) : await attendanceApi.checkOut(payload);
@@ -199,20 +344,20 @@ export const AttendanceScreen = () => {
             <Field label="Catatan (opsional)" value={notes} onChangeText={setNotes} placeholder="Catatan presensi" />
 
             <Button
-              label={submitting ? 'Memproses...' : 'Check-in sekarang'}
+              label={submitting ? 'Memproses absensi...' : 'Check-in sekarang'}
               onPress={() => submit('in')}
               disabled={submitting || Boolean(attendance?.check_in)}
             />
             <Button
-              label={submitting ? 'Memproses...' : 'Check-out sekarang'}
+              label={submitting ? 'Memproses absensi...' : 'Check-out sekarang'}
               onPress={() => submit('out')}
               variant="secondary"
               disabled={submitting || Boolean(attendance?.check_out)}
             />
             <Text style={styles.hint}>
               {isWfo
-                ? 'Lokasi dan foto diambil saat tombol ditekan. Jika di luar radius, pilih alasan kehadiran agar masuk verifikasi.'
-                : `Mode ${workMode} bebas lokasi. Lokasi dan foto tetap direkam untuk arsip presensi.`}
+                ? 'Kamera mendeteksi wajah otomatis dan mencocokkannya dengan avatar. Jika di luar radius, pilih alasan kehadiran agar masuk verifikasi.'
+                : `Mode ${workMode} bebas lokasi. Wajah diverifikasi otomatis untuk arsip presensi.`}
             </Text>
           </Card>
         </>
@@ -243,6 +388,7 @@ export const AttendanceScreen = () => {
           )}
         </>
       )}
+
     </Screen>
   );
 };

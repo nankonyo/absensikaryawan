@@ -34,7 +34,6 @@ class SettingController extends Controller
             'annual_leave_quota' => (int) $value('annual_leave_quota', 12),
             'face_recognition_enabled' => filter_var($value('face_recognition_enabled', false), FILTER_VALIDATE_BOOLEAN),
             'mobile_face_recognition_enabled' => filter_var($value('mobile_face_recognition_enabled', false), FILTER_VALIDATE_BOOLEAN),
-            'mobile_face_recognition_enabled' => filter_var($value('mobile_face_recognition_enabled', false), FILTER_VALIDATE_BOOLEAN),
             'face_recognition_threshold' => (int) $value('face_recognition_threshold', 80),
             'latitude' => (float) ($office->latitude ?? -6.2),
             'longitude' => (float) ($office->longitude ?? 106.816666),

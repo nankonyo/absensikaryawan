@@ -3,7 +3,7 @@ import { tokenStore } from './token';
 
 export const API_URL =
   process.env.EXPO_PUBLIC_API_URL ??
-  'http://10.0.2.2:8084/Rst/RstInternalApp/public/api/mobile';
+  'https://hr.rajasakti.co.id/api/mobile';
 
 export const api = axios.create({
   baseURL: API_URL,

@@ -437,7 +437,7 @@ mysql -u root -p absensikaryawan < backup_20251121.sql
 ```env
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://yourdomain.com
+APP_URL=https://hr.rajasakti.co.id
 
 # Use strong database password
 DB_PASSWORD=strong_secure_password

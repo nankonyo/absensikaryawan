@@ -151,5 +151,10 @@ Route::middleware(['auth', 'role:general_manager,sekretaris,manager,supervisor,s
         ->parameters(['leaves' => 'leave']);
 });
 
+// Face capture screen embedded in the mobile app (signed, short-lived URL).
+Route::get('/mobile/face-capture/{user}', [App\Http\Controllers\MobileFaceCaptureController::class, 'show'])
+    ->middleware('signed')
+    ->name('mobile.face-capture');
+
 require __DIR__.'/internal-app.php';
 require __DIR__.'/auth.php';

@@ -60,26 +60,20 @@ class AttendanceService
         $photoPath = null;
         $faceScore = null;
 
-        // Validate Face Recognition (if enabled) using the score computed in the browser.
-        // Mobile API may skip this when server-side face matching is not available.
+        // Verifikasi wajah dilakukan di server (InsightFace). Skor dari
+        // client tidak dipakai untuk keputusan akhir.
         if ($this->faceService->isEnabled() && empty($data['skip_face_verification'])) {
-            if (!$user->avatar) {
+            $faceVerification = app(FaceVerificationService::class)->verify($user, $data['photo_data'] ?? null);
+
+            if (! $faceVerification['success']) {
                 return [
                     'success' => false,
-                    'message' => __('ui.avatar_not_uploaded'),
+                    'message' => $faceVerification['message'],
+                    'score' => $faceVerification['score'] ?? null,
                 ];
             }
 
-            $faceScore = isset($data['face_score']) ? (float) $data['face_score'] : null;
-            $threshold = $this->faceService->getThreshold();
-
-            if ($faceScore === null || $faceScore < $threshold) {
-                return [
-                    'success' => false,
-                    'message' => __('ui.face_mismatch', ['score' => $faceScore ?? 0, 'threshold' => $threshold]),
-                    'score' => $faceScore,
-                ];
-            }
+            $faceScore = $faceVerification['score'] ?? null;
         }
 
         if (isset($data['photo_data'])) {
@@ -168,26 +162,20 @@ class AttendanceService
         $photoPath = null;
         $faceScore = null;
 
-        // Validate Face Recognition (if enabled) using the score computed in the browser.
-        // Mobile API may skip this when server-side face matching is not available.
+        // Verifikasi wajah dilakukan di server (InsightFace). Skor dari
+        // client tidak dipakai untuk keputusan akhir.
         if ($this->faceService->isEnabled() && empty($data['skip_face_verification'])) {
-            if (!$user->avatar) {
+            $faceVerification = app(FaceVerificationService::class)->verify($user, $data['photo_data'] ?? null);
+
+            if (! $faceVerification['success']) {
                 return [
                     'success' => false,
-                    'message' => __('ui.avatar_not_uploaded'),
+                    'message' => $faceVerification['message'],
+                    'score' => $faceVerification['score'] ?? null,
                 ];
             }
 
-            $faceScore = isset($data['face_score']) ? (float) $data['face_score'] : null;
-            $threshold = $this->faceService->getThreshold();
-
-            if ($faceScore === null || $faceScore < $threshold) {
-                return [
-                    'success' => false,
-                    'message' => __('ui.face_mismatch', ['score' => $faceScore ?? 0, 'threshold' => $threshold]),
-                    'score' => $faceScore,
-                ];
-            }
+            $faceScore = $faceVerification['score'] ?? null;
         }
 
         if (isset($data['photo_data'])) {

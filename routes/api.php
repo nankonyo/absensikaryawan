@@ -62,6 +62,7 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
         Route::get('today', [AttendanceController::class, 'today']);
         Route::get('history', [AttendanceController::class, 'history']);
         Route::get('reasons', [AttendanceController::class, 'reasons']);
+        Route::get('face-capture-url', [\App\Http\Controllers\MobileFaceCaptureController::class, 'url']);
         Route::post('check-in', [AttendanceController::class, 'checkIn']);
         Route::post('check-out', [AttendanceController::class, 'checkOut']);
     });

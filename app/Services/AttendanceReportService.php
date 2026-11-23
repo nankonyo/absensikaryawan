@@ -136,8 +136,10 @@ class AttendanceReportService
                     }
 
                     $lateMinutes = (int) $attendance->late_duration;
-                    if ($lateMinutes > 30) {
-                        $summary['late_hours'] += (int) ceil($lateMinutes / 60);
+                    if ($lateMinutes > 0) {
+                        // Setiap keterlambatan dihitung minimal 1 jam, lalu
+                        // dibulatkan ke atas per jam (75 menit => 2 jam).
+                        $summary['late_hours'] += max(1, (int) ceil($lateMinutes / 60));
                     }
 
                     continue;

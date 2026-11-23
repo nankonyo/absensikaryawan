@@ -19,7 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (! app()->runningUnitTests() && ($rootUrl = config('app.url'))) {
+        // Pada request HTTP, biarkan URL mengikuti origin yang dipakai (host,
+        // skema, dan port) supaya form/asset selalu same-origin dan CSRF tidak
+        // gagal saat aplikasi diakses lewat http maupun https.
+        // APP_URL hanya dipakai sebagai root untuk CLI/queue (email, dsb).
+        if (! app()->runningUnitTests() && app()->runningInConsole() && ($rootUrl = config('app.url'))) {
             \Illuminate\Support\Facades\URL::forceRootUrl($rootUrl);
         }
 

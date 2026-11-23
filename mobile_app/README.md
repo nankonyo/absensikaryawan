@@ -21,15 +21,16 @@ npm install
 npx expo start
 ```
 
-Contoh `.env`:
+Contoh `.env` produksi:
 
 ```
-EXPO_PUBLIC_API_URL=http://192.168.1.10:8084/Rst/RstInternalApp/public/api/mobile
+EXPO_PUBLIC_API_URL=https://hr.rajasakti.co.id/api/mobile
 ```
 
 Catatan:
-- Jangan pakai `localhost` untuk perangkat fisik; gunakan IP LAN komputer server.
-- Android emulator: gunakan `http://10.0.2.2:8084/...`.
+- Build `preview` dan `production` di `eas.json` sudah memakai domain `https://hr.rajasakti.co.id/api/mobile`.
+- Untuk development lokal, timpa `EXPO_PUBLIC_API_URL` di `.env` dengan IP LAN server, mis. `http://192.168.1.10/api/mobile`.
+- Android emulator lokal: `http://10.0.2.2/api/mobile`.
 - Backend sudah menyediakan API token (`/api/mobile/login`) sehingga tidak perlu cookie/session.
 
 ## 3. Navigasi per Role
@@ -68,7 +69,7 @@ flowchart TD
 flowchart TD
   A[Buka tab Presensi] --> B[GET /attendance/today]
   B --> C{Sudah check-in?}
-  C -- Belum --> D[Ambil GPS + foto]
+  C -- Belum --> D[GPS + kamera verifikasi wajah]
   D --> E[POST /attendance/check-in]
   E --> F{Di dalam radius?}
   F -- Ya --> G[Status valid]
@@ -142,7 +143,8 @@ Semua endpoint di bawah prefix `/api/mobile`:
 | POST | `/logout` | Hapus token |
 | GET | `/dashboard` | Ringkasan role & statistik |
 | GET | `/attendance/today` | Presensi hari ini + kantor + alasan |
-| POST | `/attendance/check-in` | Check-in (lat, lng, foto, alasan) |
+| GET | `/attendance/face-capture-url` | URL signed (10 menit) untuk kamera verifikasi wajah |
+| POST | `/attendance/check-in` | Check-in (lat, lng, foto, skor wajah, alasan) |
 | POST | `/attendance/check-out` | Check-out |
 | GET | `/attendance/history` | Riwayat presensi |
 | GET | `/leaves` | Pengajuan cuti user |
@@ -169,8 +171,10 @@ Token disimpan di `api_tokens` (hash SHA-256, berlaku 30 hari).
 
 ## 7. Catatan
 
-- Face recognition presensi di web memakai model browser; di mobile saat ini foto
-  dikirim sebagai base64. Jika face recognition diaktifkan di server, presensi mobile
-  akan mengikuti validasi server (bisa meminta skor wajah).
+- Face recognition mobile memakai **engine yang sama dengan web** (face-api.js).
+  Aplikasi membuka halaman `/mobile/face-capture/{user}` lewat WebView dengan signed
+  URL berumur 10 menit, mendeteksi wajah otomatis, lalu mengirim `photo_data` +
+  `face_score` ke API. Threshold dan avatar sama persis dengan versi web.
+- `react-native-webview` sudah tersedia di Expo Go; build ulang APK untuk produksi.
 - Menu administrasi di mobile membuka versi web agar CRUD/master data tetap lengkap.
 - Bottom tab otomatis menyesuaikan role dari response `/me`.

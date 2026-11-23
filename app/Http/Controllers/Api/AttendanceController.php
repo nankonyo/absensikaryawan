@@ -8,6 +8,7 @@ use App\Models\AttendanceReason;
 use App\Models\OfficeLocation;
 use App\Models\Setting;
 use App\Services\AttendanceService;
+use App\Services\FaceRecognitionService;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
@@ -35,6 +36,8 @@ class AttendanceController extends Controller
             'work_mode' => $service->workMode($user),
             'work_start_time' => Setting::get('work_start_time', '08:00'),
             'work_end_time' => Setting::get('work_end_time', '17:00'),
+            'face_verification_required' => (bool) Setting::get('mobile_face_recognition_enabled', false)
+                && app(FaceRecognitionService::class)->isEnabled(),
             'reasons' => AttendanceReason::where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ]);
     }

@@ -41,11 +41,16 @@ export const attendanceApi = {
       office: { id: number; name: string; latitude: number; longitude: number; radius: number; address?: string } | null;
       work_start_time: string;
       work_end_time: string;
+      face_verification_required?: boolean;
       reasons: { id: number; name: string }[];
       work_mode: 'WFO' | 'WFH' | 'WFA';
     }>('/attendance/today'),
   history: (params?: { month?: string; status?: string; per_page?: number }) =>
     api.get<{ data: Attendance[]; current_page: number; last_page: number }>('/attendance/history', { params }),
+  faceCaptureUrl: (mode: 'in' | 'out', warmup = false) =>
+    api.get<{ url: string | null; threshold?: number; reason?: string; enforced?: boolean }>('/attendance/face-capture-url', {
+      params: { mode, warmup: warmup ? 1 : 0 },
+    }),
   checkIn: (payload: Record<string, unknown>) => api.post('/attendance/check-in', payload),
   checkOut: (payload: Record<string, unknown>) => api.post('/attendance/check-out', payload),
 };

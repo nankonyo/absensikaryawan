@@ -17,42 +17,38 @@
     ] : null;
 @endphp
 
-<div class="-m-4 lg:-m-6 h-dvh overflow-hidden bg-black" x-data="attendanceCamera()" x-init="init()">
-    <div class="flex h-full w-full items-center justify-center overflow-hidden">
-        <!-- Camera: fills the phone screen, 3:4 portrait on larger screens -->
-        <div class="camera-frame">
+<div class="fixed inset-0 z-[55] h-[100dvh] w-screen overflow-hidden bg-black" x-data="attendanceCamera()" x-init="init()">
+    <div class="relative h-full w-full overflow-hidden">
+        <!-- Camera full-screen: covers navbar & sidebar -->
+        <div class="camera-frame absolute inset-0">
             <video x-ref="video" autoplay playsinline muted
                    x-show="!captured"
-                   class="absolute inset-0 h-full w-full object-cover"></video>
+                   class="absolute left-1/2 top-1/2 h-[min(82vw,62vh)] w-[min(82vw,62vh)] -translate-x-1/2 -translate-y-1/2 rounded-full object-cover"></video>
 
             <img x-ref="preview" x-show="captured" x-cloak
-                 class="absolute inset-0 h-full w-full object-cover" alt="{{ __('ui.selfie_photo') }}">
+                 class="absolute left-1/2 top-1/2 h-[min(82vw,62vh)] w-[min(82vw,62vh)] -translate-x-1/2 -translate-y-1/2 rounded-full object-cover" alt="{{ __('ui.selfie_photo') }}">
 
             <!-- Transparent badge: Masuk / Keluar -->
             <span class="absolute right-3 top-3 z-10 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
                 {{ $label }}
             </span>
 
-            <!-- Face position guide: vertical oval -->
-            <div x-show="!captured" x-cloak
+            <!-- Face position guide: lingkaran tengah -->
+            <div x-show="!captured || busy" x-cloak
                  class="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div class="h-[42%] w-[52%] rounded-[50%] border-4 {{ $ring }} shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
+                <div x-ref="guide" class="relative aspect-square w-[min(82vw,62vh)] rounded-full border-4 {{ $ring }} shadow-[0_0_0_9999px_#000] transition-transform duration-200"
+                     :class="faceDetected ? 'scale-105' : ''">
+                    <div x-show="busy" x-cloak
+                         class="pointer-events-none absolute -inset-3 z-10 animate-spin rounded-full border-4 border-transparent {{ $accent === 'red' ? 'border-t-[#DC2626] border-r-[#DC2626]' : 'border-t-[#16A34A] border-r-[#16A34A]' }}"></div>
+                </div>
             </div>
 
             <p x-show="!captured" x-cloak
-               class="pointer-events-none absolute inset-x-0 bottom-28 text-center text-sm font-medium text-white drop-shadow">
-                {{ __('ui.face_position_guide') }}
+               class="pointer-events-none absolute inset-x-0 bottom-10 text-center text-sm font-medium text-white drop-shadow">
+                <span x-show="!faceDetected && !fallbackMode" x-cloak>{{ __('ui.face_auto_guide') }}</span>
+                <span x-show="faceDetected" x-cloak class="font-semibold text-green-300">{{ __('ui.face_detected_hold') }}</span>
+                <span x-show="fallbackMode" x-cloak>{{ __('ui.face_auto_fallback') }}</span>
             </p>
-
-            <!-- Loading spinner while getting location and matching face -->
-            <div x-show="busy" x-cloak
-                 class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/60 text-white">
-                <svg class="h-12 w-12 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                </svg>
-                <p x-text="busyLabel" class="text-sm font-medium"></p>
-            </div>
 
             <!-- Outside-zone reason picker: hidden until the captured location is outside the radius -->
             <div x-show="needsReason" x-cloak class="absolute inset-0 z-40 flex flex-col bg-white p-5 text-gray-900">
@@ -92,19 +88,7 @@
                 </button>
             </div>
 
-            <!-- Single action: pinned to the bottom of the camera preview -->
-            <div class="absolute inset-x-0 bottom-0 z-30 p-4">
-                <button type="button"
-                        @click="capture()"
-                        :disabled="busy"
-                        class="mx-auto flex w-full max-w-sm items-center justify-center gap-2 rounded-full {{ $button }} px-6 py-4 font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-gray-500">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                    {{ __('ui.capture_photo') }}
-                </button>
-            </div>
+            <!-- Foto diambil otomatis saat wajah terdeteksi di lingkaran. -->
         </div>
     </div>
 
@@ -122,15 +106,13 @@
     </form>
 </div>
 
-@if (config('app.asset_mode') === 'cdn')
-    <script>window.FACE_MODEL_URL = "{{ asset('models') }}";</script>
-    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.min.js"></script>
-    <script src="{{ asset('cdn/face-match.js') }}?v={{ @filemtime(public_path('cdn/face-match.js')) }}"></script>
-@else
+@if (config('app.asset_mode') !== 'cdn')
     @vite('resources/js/face-match.js')
 @endif
 
 <script>
+    const FACE_API_SRC = @json(asset('cdn/face-api.min.js'));
+    const FACE_MATCH_SRC = @json(asset('cdn/face-match.js'));
     const FACE_ENABLED = @json(app(\App\Services\FaceRecognitionService::class)->isEnabled());
     const FACE_AVATAR_URL = @json(auth()->user()->avatar_url);
     const FACE_THRESHOLD = {{ (int) app(\App\Services\FaceRecognitionService::class)->getThreshold() }};
@@ -155,7 +137,6 @@
     function attendanceCamera() {
         return {
             busy: false,
-            busyLabel: '',
             captured: false,
             stream: null,
             needsReason: false,
@@ -164,17 +145,47 @@
             reasonError: false,
             pendingPosition: null,
             lastPosition: null,
-            facePrepare: null,
+            lastFaceBox: null,
+            faceDetected: false,
+            faceSeen: 0,
+            fallbackMode: false,
+            detectTimer: null,
+            detectGeneration: 0,
+            previousHtmlOverflow: '',
+            previousBodyOverflow: '',
+            isDestroyed: false,
 
             async init() {
-                // Warm up models + avatar descriptor and GPS while the user aims the camera.
-                if (FACE_ENABLED && FACE_AVATAR_URL) {
-                    this.facePrepare = this.prepareFace();
-                    this.facePrepare.catch(() => {});
-                }
+                // Kunci scroll: kamera menutup seluruh viewport, termasuk navbar.
+                this.previousHtmlOverflow = document.documentElement.style.overflow;
+                this.previousBodyOverflow = document.body.style.overflow;
+                document.documentElement.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden';
 
+                // Warm up models + avatar descriptor and GPS while the user aims the camera.
                 await this.startCamera();
                 this.startPositionWatch();
+                this.startFaceAutoCapture();
+
+                this._onResize = () => this.fitGuide();
+                window.addEventListener('resize', this._onResize);
+            },
+
+            destroy() {
+                if (this._onResize) {
+                    window.removeEventListener('resize', this._onResize);
+                }
+
+                this.stopFaceAutoCapture();
+                this.stopCamera();
+            },
+
+            destroy() {
+                this.isDestroyed = true;
+                this.stopFaceAutoCapture();
+                this.stopCamera();
+                document.documentElement.style.overflow = this.previousHtmlOverflow || '';
+                document.body.style.overflow = this.previousBodyOverflow || '';
             },
 
             async startCamera() {
@@ -188,16 +199,28 @@
                 }
 
                 try {
-                    this.stream = await navigator.mediaDevices.getUserMedia({
-                        video: {
+                    const isPortrait = window.innerHeight >= window.innerWidth;
+                    const videoConstraints = isPortrait
+                        ? {
+                            facingMode: 'user',
+                            width: { ideal: 720 },
+                            height: { ideal: 1280 },
+                            aspectRatio: 9 / 16,
+                        }
+                        : {
                             facingMode: 'user',
                             width: { ideal: 1280 },
-                            height: { ideal: 960 },
-                            aspectRatio: 3 / 4,
-                        },
+                            height: { ideal: 720 },
+                            aspectRatio: 16 / 9,
+                        };
+
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: videoConstraints,
                         audio: false,
                     });
                     this.$refs.video.srcObject = this.stream;
+                    this.$refs.video.addEventListener('loadedmetadata', () => this.fitGuide(), { once: true });
+                    this.fitGuide();
                     await this.$refs.video.play().catch(() => {});
                 } catch (error) {
                     this.toast(MSG.cameraError.replace('__MSG__', error.message));
@@ -208,11 +231,184 @@
                 return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
             },
 
+            fitGuide() {
+                const guide = this.$refs.guide;
+
+                if (!guide) {
+                    return;
+                }
+
+                // Lingkaran besar; video persegi di belakangnya memenuhi lingkaran.
+                const size = Math.min(window.innerWidth * 0.82, window.innerHeight * 0.62);
+                const videoSize = size + 8;
+                guide.style.width = size + 'px';
+                guide.style.height = size + 'px';
+
+                if (this.$refs.video) {
+                    this.$refs.video.style.width = videoSize + 'px';
+                    this.$refs.video.style.height = videoSize + 'px';
+                }
+
+                if (this.$refs.preview) {
+                    this.$refs.preview.style.width = videoSize + 'px';
+                    this.$refs.preview.style.height = videoSize + 'px';
+                }
+            },
+
             stopCamera() {
                 if (this.stream) {
                     this.stream.getTracks().forEach(track => track.stop());
                     this.stream = null;
                 }
+            },
+
+            stopFaceAutoCapture() {
+                if (this.detectTimer) {
+                    clearTimeout(this.detectTimer);
+                    this.detectTimer = null;
+                }
+            },
+
+            async startFaceAutoCapture() {
+                this.stopFaceAutoCapture();
+
+                const generation = ++this.detectGeneration;
+                this.faceDetected = false;
+                this.faceSeen = 0;
+                this.fallbackMode = false;
+
+                const stillCurrent = () => generation === this.detectGeneration
+                    && !this.isDestroyed && !this.captured && !this.busy && !this.needsReason;
+
+                // Tunggu library + model deteksi wajah siap.
+                const startedAt = Date.now();
+                while (stillCurrent() && !(window.FaceMatch && window.faceapi) && Date.now() - startedAt < 15000) {
+                    await new Promise(resolve => setTimeout(resolve, 120));
+                }
+
+                if (!stillCurrent()) {
+                    return;
+                }
+
+                if (!window.FaceMatch || !window.faceapi) {
+                    // Library gagal dimuat: tetap ambil foto otomatis agar alur tidak macet.
+                    this.fallbackMode = true;
+                    this.detectTimer = setTimeout(() => {
+                        if (stillCurrent()) {
+                            this.capture();
+                        }
+                    }, 2500);
+
+                    return;
+                }
+
+                try {
+                    await window.FaceMatch.loadDetector();
+                } catch (error) {
+                    if (!stillCurrent()) {
+                        return;
+                    }
+
+                    this.fallbackMode = true;
+                    this.detectTimer = setTimeout(() => {
+                        if (stillCurrent()) {
+                            this.capture();
+                        }
+                    }, 2500);
+
+                    return;
+                }
+
+                const detectStartedAt = Date.now();
+
+                const detect = async () => {
+                    if (!stillCurrent()) {
+                        return;
+                    }
+
+                    const video = this.$refs.video;
+
+                    if (!video || video.readyState < 2 || !video.videoWidth) {
+                        this.detectTimer = setTimeout(detect, 250);
+
+                        return;
+                    }
+
+                    let face = null;
+
+                    try {
+                        face = await window.FaceMatch.detect(video);
+                    } catch (error) {
+                        face = null;
+                    }
+
+                    if (!stillCurrent()) {
+                        return;
+                    }
+
+                    const width = video.videoWidth;
+                    const height = video.videoHeight;
+                    const centered = face
+                        && Math.abs((face.box.x + face.box.width / 2) - width / 2) < width * 0.32
+                        && Math.abs((face.box.y + face.box.height / 2) - height / 2) < height * 0.32
+                        && face.box.width > width * 0.10;
+
+                    // Deteksi tidak kunjung menemukan wajah (kamera/lingkungan bermasalah):
+                    // tetap lanjut ambil foto agar alur absensi tidak macet.
+                    if (!centered && this.faceSeen === 0 && Date.now() - detectStartedAt > 15000) {
+                        this.stopFaceAutoCapture();
+                        this.fallbackMode = true;
+                        this.detectTimer = setTimeout(() => {
+                            if (stillCurrent()) {
+                                this.capture();
+                            }
+                        }, 1200);
+
+                        return;
+                    }
+
+                    if (centered) {
+                        this.faceSeen += 1;
+                        this.lastFaceBox = {
+                            x: face.box.x,
+                            y: face.box.y,
+                            width: face.box.width,
+                            height: face.box.height,
+                        };
+                        this.faceDetected = true;
+                    } else {
+                        this.faceSeen = 0;
+                        this.faceDetected = false;
+                    }
+
+                    if (this.faceSeen >= 1) {
+                        this.stopFaceAutoCapture();
+                        this.capture();
+
+                        return;
+                    }
+
+                    this.detectTimer = setTimeout(detect, 220);
+                };
+
+                this.detectTimer = setTimeout(detect, 300);
+            },
+
+            withTimeout(promise, ms, message) {
+                return new Promise((resolve, reject) => {
+                    const timer = setTimeout(() => reject(new Error(message)), ms);
+
+                    promise.then(
+                        (value) => {
+                            clearTimeout(timer);
+                            resolve(value);
+                        },
+                        (error) => {
+                            clearTimeout(timer);
+                            reject(error);
+                        },
+                    );
+                });
             },
 
             async capture() {
@@ -229,18 +425,19 @@
                 }
 
                 this.busy = true;
-                this.busyLabel = MSG.processing;
                 this.captured = true;
 
                 try {
                     this.drawFrame();
                     this.stopCamera();
 
-                    // Location lookup and face matching run together: wait for the slower one only.
-                    const [position] = await Promise.all([
+                    // Auto-shot sudah dilakukan client; identitas diverifikasi
+                    // server (InsightFace). Di sini cukup ambil lokasi.
+                    const position = await this.withTimeout(
                         this.getPosition(),
-                        FACE_ENABLED ? this.verifyFace() : Promise.resolve(),
-                    ]);
+                        5000,
+                        'Proses absensi terlalu lama. Coba lagi.',
+                    );
 
                     const distance = this.distanceToOffice(
                         position.coords.latitude,
@@ -261,6 +458,13 @@
                     this.captured = false;
                     this.toast(error.message);
                     await this.startCamera();
+
+                    // Beri jeda singkat sebelum mencoba lagi agar pesan error tidak berulang terlalu cepat.
+                    setTimeout(() => {
+                        if (!this.isDestroyed && !this.busy && !this.captured) {
+                            this.startFaceAutoCapture();
+                        }
+                    }, 1500);
                 }
             },
 
@@ -309,7 +513,30 @@
                 const canvas = this.$refs.canvas;
                 const context = canvas.getContext('2d');
 
-                // Center-crop the video to 3:4 portrait to match what the user sees.
+                // Crop ke kotak wajah + margin supaya wajah utuh meski kamera
+                // di-zoom-out / user memegang HP di jarak normal.
+                if (this.lastFaceBox) {
+                    const box = this.lastFaceBox;
+                    const videoWidth = video.videoWidth;
+                    const videoHeight = video.videoHeight;
+                    const faceSize = Math.max(box.width, box.height);
+                    const cropSize = Math.min(Math.max(faceSize * 1.9, 120), videoWidth, videoHeight);
+                    const centerX = box.x + box.width / 2;
+                    const centerY = box.y + box.height / 2;
+                    const sourceX = Math.min(Math.max(0, centerX - cropSize / 2), videoWidth - cropSize);
+                    const sourceY = Math.min(Math.max(0, centerY - cropSize / 2), videoHeight - cropSize);
+
+                    canvas.width = 900;
+                    canvas.height = 900;
+                    context.drawImage(video, sourceX, sourceY, cropSize, cropSize, 0, 0, canvas.width, canvas.height);
+
+                    this.$refs.photoData.value = canvas.toDataURL('image/jpeg', 0.85);
+                    this.$refs.preview.src = this.$refs.photoData.value;
+
+                    return;
+                }
+
+                // Fallback: center-crop the video to 3:4 portrait.
                 const targetRatio = 3 / 4;
                 let sourceWidth = video.videoWidth;
                 let sourceHeight = video.videoHeight;
@@ -406,11 +633,57 @@
                 }
             },
 
-            async getFaceMatcher() {
-                const startedAt = Date.now();
+            loadFaceScript(src, allowCdnFallback = false) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.async = true;
+                    script.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+                    script.onload = () => resolve();
+                    script.onerror = () => {
+                        if (!allowCdnFallback) {
+                            reject(new Error('Gagal memuat ' + src));
 
-                while (!window.FaceMatch && Date.now() - startedAt < 15000) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                            return;
+                        }
+
+                        const fallback = document.createElement('script');
+                        fallback.async = true;
+                        fallback.src = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.min.js';
+                        fallback.onload = () => resolve();
+                        fallback.onerror = () => reject(new Error('Gagal memuat library face recognition'));
+                        document.head.appendChild(fallback);
+                    };
+                    document.head.appendChild(script);
+                });
+            },
+
+            async getFaceMatcher() {
+                const waitForMatcher = async (ms) => {
+                    const startedAt = Date.now();
+
+                    while (!window.FaceMatch && Date.now() - startedAt < ms) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                };
+
+                await waitForMatcher(5000);
+
+                // Script bisa gagal dimuat (jaringan/cache). Coba muat ulang
+                // face-api & face-match sekali secara dinamis sebelum menyerah.
+                if (!window.FaceMatch) {
+                    try {
+                        if (!window.faceapi) {
+                            await this.loadFaceScript(FACE_API_SRC, true);
+                        }
+
+                        if (window.faceapi && !window.FaceMatch) {
+                            await this.loadFaceScript(FACE_MATCH_SRC, false);
+                        }
+                    } catch (error) {
+                        // lanjut ke pengecekan di bawah; pesan error tetap jelas
+                    }
+
+                    await waitForMatcher(10000);
                 }
 
                 if (!window.FaceMatch) {

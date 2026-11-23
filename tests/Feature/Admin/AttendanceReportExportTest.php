@@ -93,6 +93,36 @@ class AttendanceReportExportTest extends TestCase
         $this->assertSame(2, $row['absent']);
     }
 
+    public function test_every_late_day_counts_at_least_one_hour_and_rounds_up(): void
+    {
+        Attendance::create([
+            'user_id' => $this->employee->id,
+            'date' => '2026-11-03',
+            'check_in' => '08:20:00',
+            'status' => 'valid',
+            'late_duration' => 20,
+        ]);
+
+        Attendance::create([
+            'user_id' => $this->employee->id,
+            'date' => '2026-11-04',
+            'check_in' => '09:15:00',
+            'status' => 'valid',
+            'late_duration' => 75,
+        ]);
+
+        $report = app(AttendanceReportService::class)->build(
+            Carbon::parse('2026-11-02'),
+            Carbon::parse('2026-11-06')
+        );
+
+        $row = collect($report['rows'])->firstWhere('employee_id', 'TEST-001');
+
+        $this->assertNotNull($row);
+        // 20 menit -> 1 jam, 75 menit -> 2 jam.
+        $this->assertSame(3, $row['late_hours']);
+    }
+
     public function test_attendance_report_downloads_excel_file(): void
     {
         Excel::fake();

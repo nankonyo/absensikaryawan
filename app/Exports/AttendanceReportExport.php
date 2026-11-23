@@ -259,7 +259,7 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
             'Cuti Bersama = mengurangi saldo cuti tahunan karyawan',
             'Libur Perusahaan = kebijakan perusahaan, tidak mengurangi cuti tahunan karyawan',
             'Absent = total tidak hadir tanpa keterangan',
-            'Terlambat = total terlambat dalam satu bulan (di atas 30 menit dihitung 1 jam)',
+            'Terlambat = total terlambat dalam satu bulan (setiap keterlambatan dihitung minimal 1 jam, dibulatkan ke atas per jam)',
         ];
 
         foreach ($notes as $index => $note) {

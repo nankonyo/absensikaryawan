@@ -51,6 +51,8 @@
     </div>
 
     <x-toast />
+
+    @include('partials.face-engine')
     <script>
         (function () {
             document.addEventListener('change', function (event) {

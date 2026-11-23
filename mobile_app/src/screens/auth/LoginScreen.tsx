@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui';
 import { Field } from '../../components/Field';
@@ -68,12 +69,16 @@ export const LoginScreen = () => {
       </View>
 
       <Text style={styles.footer}>© {new Date().getFullYear()} Raja Sakti Telematika</Text>
+      <Text style={styles.version}>
+        v{Constants.expoConfig?.version ?? '1.0.5'} · hr.rajasakti.co.id
+      </Text>
     </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   root: { flex: 1, padding: spacing.xl, justifyContent: 'center', gap: spacing.xl },
+  version: { textAlign: 'center', color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '600' },
   hero: { alignItems: 'center', gap: spacing.sm },
   logo: {
     width: 72,

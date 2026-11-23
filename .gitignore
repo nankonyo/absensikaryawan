@@ -22,3 +22,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Face recognition service
+face_service/.venv/
+face_service/models/
+face_service/__pycache__/
+
+# Local env backups (secrets)
+.env.bak-*

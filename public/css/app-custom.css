@@ -37,21 +37,14 @@
     background-color: #f8fafc;
 }
 
-/* Full-screen attendance camera: fills phones, portrait frame on desktop. */
+/* Full-screen attendance camera: always fills the whole viewport. */
 .camera-frame {
-    position: relative;
+    position: absolute;
+    inset: 0;
     height: 100%;
     width: 100%;
     overflow: hidden;
     background-color: #000;
-}
-
-@media (min-width: 640px) {
-    .camera-frame {
-        height: min(85dvh, 820px);
-        width: calc(min(85dvh, 820px) * 0.75);
-        max-width: 100%;
-    }
 }
 
 /* Sidebar scrollbar stays invisible until the sidebar is hovered. */

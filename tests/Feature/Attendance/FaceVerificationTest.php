@@ -77,7 +77,7 @@ class FaceVerificationTest extends TestCase
         $response->assertSee('storage\/avatars\/face.jpg', false);
     }
 
-    public function test_check_in_page_uses_single_capture_button_without_location_button(): void
+    public function test_check_in_page_auto_captures_without_manual_button(): void
     {
         $role = Role::create(['name' => 'staff', 'display_name' => 'Staf']);
         $supervisor = User::factory()->create();
@@ -92,12 +92,16 @@ class FaceVerificationTest extends TestCase
         $response->assertOk();
         $response->assertDontSee(__('ui.get_my_location'));
         $response->assertDontSee('id="locale-switcher"', false);
-        $response->assertSee(__('ui.face_position_guide'));
+        $response->assertSee(__('ui.face_auto_guide'));
         $response->assertSee(__('ui.check_in_badge'));
         $response->assertSee('camera-frame', false);
-        $response->assertSee('rounded-[50%]', false);
+        $response->assertSee('aspect-square', false);
+        $response->assertSee('rounded-full', false);
         $response->assertSee('border-[#16A34A]', false);
-        $response->assertSee('@click="capture()"', false);
+        $response->assertSee('startFaceAutoCapture', false);
+        $response->assertSee('fixed inset-0', false);
+        $response->assertDontSee('@click="capture()"', false);
+        $response->assertDontSee(__('ui.capture_photo'));
     }
 
     public function test_check_out_page_uses_red_guide_and_out_badge_without_navbar(): void
