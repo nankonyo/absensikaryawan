@@ -26,8 +26,6 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
         'Terlambat / Jam',
         'Tugas Dalam Kota',
         'WFH',
-        'Tugas Pelatihan',
-        'Tugas Keluar Kota',
         'Izin',
         'CUTI',
         'Izin Sakit',
@@ -35,7 +33,12 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
         'Cuti Bersama',
         'Libur Perusahaan',
         'Libur Tanggal Merah',
+        'Tugas Pelatihan',
+        'Tugas Keluar Kota',
         'Keterangan',
+        'Total Hari Hadir',
+        '% Kehadiran',
+        'Penilaian',
     ];
 
     public const NOTES = [
@@ -45,6 +48,8 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
         'Absent = total tidak hadir tanpa keterangan',
         'Terlambat = total terlambat dalam satu bulan (setiap keterlambatan dihitung minimal 1 jam, dibulatkan ke atas per jam)',
         'Hari Kerja = total hari periode dikurangi hari libur mingguan pada Pengaturan > Absensi',
+        'Total Hari Hadir = jumlah hari dengan presensi tercatat pada periode',
+        'Penilaian: >91% Sangat Baik, 71-90% Baik, 51-70% Kurang, <50% Sangat Kurang',
     ];
 
     public function __construct(private array $report) {}
@@ -65,16 +70,19 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
             'F' => 16,
             'G' => 16,
             'H' => 10,
-            'I' => 16,
-            'J' => 17,
-            'K' => 10,
-            'L' => 10,
-            'M' => 12,
-            'N' => 15,
-            'O' => 13,
-            'P' => 18,
-            'Q' => 21,
+            'I' => 10,
+            'J' => 10,
+            'K' => 12,
+            'L' => 15,
+            'M' => 13,
+            'N' => 18,
+            'O' => 21,
+            'P' => 16,
+            'Q' => 17,
             'R' => 38,
+            'S' => 16,
+            'T' => 12,
+            'U' => 16,
         ];
     }
 
@@ -98,7 +106,7 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
                 $sheet->freezePane('A7');
                 $sheet->getRowDimension(2)->setRowHeight(20);
                 $sheet->getRowDimension(5)->setRowHeight(30);
-                $sheet->getStyle('A5:R6')->getAlignment()->setWrapText(true);
+                $sheet->getStyle('A5:U6')->getAlignment()->setWrapText(true);
 
                 $sheet->getPageSetup()
                     ->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
@@ -127,20 +135,23 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
             $sheet->setCellValueExplicit("A{$excelRow}", (string) ($row['employee_id'] ?: $index + 1), DataType::TYPE_STRING);
             $sheet->setCellValue("B{$excelRow}", mb_strtoupper($row['name']));
             $sheet->setCellValue("C{$excelRow}", $row['normal_work_days']);
-            $sheet->setCellValue("D{$excelRow}", "=C{$excelRow}-E{$excelRow}-K{$excelRow}-M{$excelRow}-O{$excelRow}-L{$excelRow}-Q{$excelRow}-P{$excelRow}");
+            $sheet->setCellValue("D{$excelRow}", "=C{$excelRow}-E{$excelRow}-I{$excelRow}-K{$excelRow}-M{$excelRow}-J{$excelRow}-O{$excelRow}-N{$excelRow}");
             $sheet->setCellValue("E{$excelRow}", $row['absent']);
             $sheet->setCellValue("F{$excelRow}", $row['late_hours']);
             $sheet->setCellValue("G{$excelRow}", $row['duty_city']);
             $sheet->setCellValue("H{$excelRow}", $row['wfh']);
-            $sheet->setCellValue("I{$excelRow}", $row['training']);
-            $sheet->setCellValue("J{$excelRow}", $row['duty_out_of_town']);
-            $sheet->setCellValue("K{$excelRow}", $row['permit']);
-            $sheet->setCellValue("L{$excelRow}", $row['leave']);
-            $sheet->setCellValue("M{$excelRow}", $row['sick_leave']);
-            $sheet->setCellValue("N{$excelRow}", $row['compensation_hours']);
-            $sheet->setCellValue("O{$excelRow}", $row['collective_leave']);
-            $sheet->setCellValue("P{$excelRow}", $row['company_holiday']);
-            $sheet->setCellValue("Q{$excelRow}", $row['national_holiday']);
+            $sheet->setCellValue("I{$excelRow}", $row['permit']);
+            $sheet->setCellValue("J{$excelRow}", $row['leave']);
+            $sheet->setCellValue("K{$excelRow}", $row['sick_leave']);
+            $sheet->setCellValue("L{$excelRow}", $row['compensation_hours']);
+            $sheet->setCellValue("M{$excelRow}", $row['collective_leave']);
+            $sheet->setCellValue("N{$excelRow}", $row['company_holiday']);
+            $sheet->setCellValue("O{$excelRow}", $row['national_holiday']);
+            $sheet->setCellValue("P{$excelRow}", $row['training']);
+            $sheet->setCellValue("Q{$excelRow}", $row['duty_out_of_town']);
+            $sheet->setCellValue("S{$excelRow}", $row['present_days']);
+            $sheet->setCellValue("T{$excelRow}", $row['attendance_percentage'].'%');
+            $sheet->setCellValue("U{$excelRow}", $row['attendance_grade']);
         }
     }
 
@@ -198,15 +209,15 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
 
     private function styleHeader($sheet): void
     {
-        $sheet->mergeCells('A2:R2');
-        $sheet->mergeCells('A3:R3');
+        $sheet->mergeCells('A2:U2');
+        $sheet->mergeCells('A3:U3');
 
         foreach (self::HEADERS as $index => $header) {
             $column = $this->columnName($index + 1);
             $sheet->mergeCells("{$column}5:{$column}6");
         }
 
-        $sheet->getStyle('A2:R2')->applyFromArray([
+        $sheet->getStyle('A2:U2')->applyFromArray([
             'font' => ['name' => 'Arial', 'size' => 14, 'bold' => true],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -215,7 +226,7 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
             'borders' => ['outline' => ['borderStyle' => Border::BORDER_THIN]],
         ]);
 
-        $sheet->getStyle('A3:R3')->applyFromArray([
+        $sheet->getStyle('A3:U3')->applyFromArray([
             'font' => ['name' => 'Arial', 'size' => 10, 'bold' => true],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -223,7 +234,7 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
             ],
         ]);
 
-        $sheet->getStyle('A5:R6')->applyFromArray([
+        $sheet->getStyle('A5:U6')->applyFromArray([
             'font' => ['name' => 'Arial', 'size' => 10, 'bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF44546A']],
             'alignment' => [
@@ -234,9 +245,9 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
         ]);
 
+        $sheet->getStyle('I5:I6')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFC000');
+        $sheet->getStyle('J5:J6')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF70AD47');
         $sheet->getStyle('K5:K6')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFC000');
-        $sheet->getStyle('L5:L6')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF70AD47');
-        $sheet->getStyle('M5:M6')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFC000');
     }
 
     private function styleData($sheet, int $lastDataRow): void
@@ -245,7 +256,7 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
             return;
         }
 
-        $sheet->getStyle("A7:R{$lastDataRow}")->applyFromArray([
+        $sheet->getStyle("A7:U{$lastDataRow}")->applyFromArray([
             'font' => ['name' => 'Arial', 'size' => 10],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -256,6 +267,7 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
 
         $sheet->getStyle("B7:B{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
         $sheet->getStyle("R7:R{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle("U7:U{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
 
         $sheet->getStyle("C7:C{$lastDataRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFC000');
         $sheet->getStyle("D7:D{$lastDataRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFFF66');
@@ -270,10 +282,10 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
     {
         foreach (self::NOTES as $index => $note) {
             $row = $notesRow + $index;
-            $sheet->mergeCells("Q{$row}:R{$row}");
+            $sheet->mergeCells("Q{$row}:U{$row}");
             $sheet->setCellValue("Q{$row}", $note);
-            $sheet->getStyle("Q{$row}:R{$row}")->applyFromArray([
-                'font' => ['name' => 'Arial', 'size' => 10],
+            $sheet->getStyle("Q{$row}:U{$row}")->applyFromArray([
+                'font' => ['name' => 'Arial', 'size' => 10, 'bold' => true],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
             ]);
         }

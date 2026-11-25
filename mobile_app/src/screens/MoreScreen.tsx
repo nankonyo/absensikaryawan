@@ -48,7 +48,7 @@ const adminGroups = [
   {
     title: 'Laporan & Sistem',
     items: [
-      ['Laporan', 'reports'],
+      ['Laporan Kehadiran', 'reports'],
       ['Audit Log', 'audit-logs'],
       ['Pengaturan', 'settings'],
     ],

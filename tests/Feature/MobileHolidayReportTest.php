@@ -49,6 +49,22 @@ class MobileHolidayReportTest extends TestCase
             ]);
     }
 
+    public function test_admin_can_get_a_signed_report_download_url(): void
+    {
+        $this->seed();
+        $admin = User::where('email', 'admin@example.com')->firstOrFail();
+        $token = ApiToken::issue($admin, 'test');
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/mobile/reports/attendance/download-url?start_date=2026-11-02&end_date=2026-11-06&format=pdf')
+            ->assertOk()
+            ->assertJsonStructure(['url']);
+
+        $this->get($response->json('url'))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
     public function test_admin_can_manage_holidays_from_the_mobile_resource_api(): void
     {
         $this->seed();

@@ -7,15 +7,36 @@
             window.__iaDevReloadStarted = true;
 
             const STORAGE_KEY = 'ia-dev-version';
-            const INTERVAL = 10000;
+            const INTERVAL = 30000;
+            const START_DELAY = 5000;
 
             let currentVersion = window.localStorage.getItem(STORAGE_KEY);
             let running = false;
             let failures = 0;
+            let stopped = false;
             let timer = null;
 
+            const stop = () => {
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+            };
+
+            const schedule = (delay = INTERVAL) => {
+                if (stopped) return;
+                stop();
+                timer = setTimeout(checkVersion, delay);
+            };
+
             const checkVersion = async () => {
-                if (running || document.visibilityState === 'hidden') {
+                if (running) {
+                    schedule();
+                    return;
+                }
+
+                if (document.visibilityState === 'hidden') {
+                    schedule();
                     return;
                 }
 
@@ -49,15 +70,29 @@
                     failures++;
 
                     if (failures >= 3) {
-                        clearInterval(timer);
+                        stopped = true;
+                        stop();
                     }
                 } finally {
                     running = false;
+
+                    if (!stopped) {
+                        schedule();
+                    }
                 }
             };
 
-            setTimeout(checkVersion, 3000);
-            timer = setInterval(checkVersion, INTERVAL);
+            document.addEventListener('visibilitychange', () => {
+                if (stopped) return;
+
+                if (document.visibilityState === 'hidden') {
+                    stop();
+                } else {
+                    schedule(0);
+                }
+            });
+
+            schedule(START_DELAY);
         })();
     </script>
 @endif

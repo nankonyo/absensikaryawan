@@ -165,6 +165,79 @@ class AttendanceReportExportTest extends TestCase
         );
     }
 
+    public function test_reports_page_defaults_to_current_month_and_shows_the_table(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.reports.index'))
+            ->assertOk()
+            ->assertSee(now()->startOfMonth()->toDateString())
+            ->assertSee(now()->endOfMonth()->toDateString())
+            ->assertSee(__('ui.attendance_report'))
+            ->assertSee(__('ui.download_pdf'))
+            ->assertSee(__('ui.download_excel'));
+    }
+
+    public function test_reports_page_accepts_a_date_range_filter(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.reports.index', [
+                'filter_type' => 'range',
+                'start_date' => '2026-11-02',
+                'end_date' => '2026-11-06',
+            ]))
+            ->assertOk()
+            ->assertSee('2026-11-02')
+            ->assertSee('2026-11-06');
+    }
+
+    public function test_reports_page_accepts_semester_and_year_filters(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.reports.index', [
+                'filter_type' => 'semester',
+                'year' => 2026,
+                'semester' => 1,
+            ]))
+            ->assertOk()
+            ->assertSee('2026-01-01')
+            ->assertSee('2026-06-30');
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.reports.index', [
+                'filter_type' => 'year',
+                'year' => 2026,
+            ]))
+            ->assertOk()
+            ->assertSee('2026-01-01')
+            ->assertSee('2026-12-31');
+    }
+
+    public function test_attendance_grades_follow_the_requested_thresholds(): void
+    {
+        $this->assertSame('Sangat Baik', AttendanceReportService::attendanceGrade(92));
+        $this->assertSame('Baik', AttendanceReportService::attendanceGrade(80));
+        $this->assertSame('Kurang', AttendanceReportService::attendanceGrade(60));
+        $this->assertSame('Sangat Kurang', AttendanceReportService::attendanceGrade(40));
+    }
+
+    public function test_attendance_report_downloads_excel_from_the_get_route(): void
+    {
+        Excel::fake();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.reports.attendance.download', [
+                'start_date' => '2026-11-02',
+                'end_date' => '2026-11-06',
+                'format' => 'excel',
+            ]))
+            ->assertOk();
+
+        Excel::assertDownloaded(
+            'laporan-absensi-2026-11-02-sd-2026-11-06.xlsx',
+            fn ($export) => $export instanceof AttendanceReportExport
+        );
+    }
+
     public function test_attendance_report_preview_returns_inline_pdf(): void
     {
         $this->actingAs($this->admin)

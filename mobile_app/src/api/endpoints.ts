@@ -136,6 +136,8 @@ export const holidayApi = {
 export const reportApi = {
   attendance: (params: { start_date: string; end_date: string }) =>
     api.get<AttendanceReport>('/reports/attendance', { params }),
+  downloadUrl: (params: { start_date: string; end_date: string; format: 'pdf' | 'excel' }) =>
+    api.get<{ url: string }>('/reports/attendance/download-url', { params }),
 };
 
 export const profileApi = {

@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exports\AttendanceReportExport;
 use App\Http\Controllers\Controller;
 use App\Services\AttendanceReportService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
 {
@@ -23,6 +27,7 @@ class ReportController extends Controller
         'collective_leave',
         'company_holiday',
         'national_holiday',
+        'present_days',
     ];
 
     public function attendance(Request $request, AttendanceReportService $service)
@@ -67,5 +72,46 @@ class ReportController extends Controller
             'rows' => $rows,
             'totals' => $totals,
         ]);
+    }
+
+    public function downloadUrl(Request $request)
+    {
+        abort_unless($request->user()?->isAdmin(), 403, 'Laporan absensi hanya untuk admin.');
+
+        $data = $request->validate([
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'format' => ['required', 'in:pdf,excel'],
+        ]);
+
+        $url = URL::temporarySignedRoute(
+            'mobile.reports.attendance.download',
+            now()->addMinutes(10),
+            $data
+        );
+
+        return response()->json(['url' => $url]);
+    }
+
+    public function download(Request $request)
+    {
+        $data = $request->validate([
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'format' => ['required', 'in:pdf,excel'],
+        ]);
+
+        $startDate = Carbon::parse($data['start_date']);
+        $endDate = Carbon::parse($data['end_date']);
+        $report = app(AttendanceReportService::class)->build($startDate, $endDate);
+        $fileName = 'laporan-absensi-'.$startDate->format('Y-m-d').'-sd-'.$endDate->format('Y-m-d');
+
+        if ($data['format'] === 'pdf') {
+            return Pdf::loadView('reports.attendance-pdf', ['report' => $report])
+                ->setPaper('a4', 'landscape')
+                ->download($fileName.'.pdf');
+        }
+
+        return Excel::download(new AttendanceReportExport($report), $fileName.'.xlsx');
     }
 }

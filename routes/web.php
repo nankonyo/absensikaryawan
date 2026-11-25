@@ -8,7 +8,6 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-
 Route::get('/locale/{locale}', function (string $locale) {
     abort_unless(in_array($locale, \App\Http\Middleware\SetLocale::SUPPORTED, true), 404);
 
@@ -92,6 +91,7 @@ Route::middleware(['auth', 'role:direksi,admin'])->prefix('admin')->name('admin.
     // Reports
     Route::get('/reports', [App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/attendance/preview', [App\Http\Controllers\Admin\ReportController::class, 'preview'])->name('reports.attendance.preview');
+    Route::get('/reports/attendance/download', [App\Http\Controllers\Admin\ReportController::class, 'download'])->name('reports.attendance.download');
     Route::post('/reports/attendance', [App\Http\Controllers\Admin\ReportController::class, 'attendance'])->name('reports.attendance');
 
     // Settings

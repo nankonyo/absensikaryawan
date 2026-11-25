@@ -139,6 +139,9 @@ export type AttendanceReportRow = {
   collective_leave: number;
   company_holiday: number;
   national_holiday: number;
+  present_days: number;
+  attendance_percentage: number;
+  attendance_grade: string;
 };
 
 export type AttendanceReport = {

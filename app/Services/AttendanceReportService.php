@@ -72,6 +72,9 @@ class AttendanceReportService
                 'collective_leave' => 0,
                 'company_holiday' => 0,
                 'national_holiday' => 0,
+                'present_days' => 0,
+                'attendance_percentage' => 0.0,
+                'attendance_grade' => '',
             ];
 
             $userAttendances = $attendances->get($user->id, collect())
@@ -124,6 +127,7 @@ class AttendanceReportService
                 $attendance = $userAttendances->get($date);
 
                 if ($attendance && ($attendance->check_in || $attendance->check_out)) {
+                    $summary['present_days']++;
                     $reason = strtolower((string) $attendance->attendanceReason?->name);
 
                     if (str_contains($reason, 'wfh')) {
@@ -153,6 +157,25 @@ class AttendanceReportService
                 }
             }
 
+            $summary['actual_work_days'] = max(
+                0,
+                $summary['normal_work_days']
+                    - $summary['absent']
+                    - $summary['permit']
+                    - $summary['sick_leave']
+                    - $summary['collective_leave']
+                    - $summary['leave']
+                    - $summary['national_holiday']
+                    - $summary['company_holiday']
+            );
+
+            $percentage = $summary['normal_work_days'] > 0
+                ? round(($summary['present_days'] / $summary['normal_work_days']) * 100, 1)
+                : 0.0;
+
+            $summary['attendance_percentage'] = $percentage;
+            $summary['attendance_grade'] = self::attendanceGrade($percentage);
+
             return $summary;
         })->values()->all();
 
@@ -162,5 +185,22 @@ class AttendanceReportService
             'normal_work_days' => count($workDays),
             'rows' => $rows,
         ];
+    }
+
+    public static function attendanceGrade(float $percentage): string
+    {
+        if ($percentage > 91) {
+            return 'Sangat Baik';
+        }
+
+        if ($percentage >= 71) {
+            return 'Baik';
+        }
+
+        if ($percentage >= 51) {
+            return 'Kurang';
+        }
+
+        return 'Sangat Kurang';
     }
 }

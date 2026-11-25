@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 
 if (app()->environment('local')) {
     Route::get('__dev/version', function () {
-        $version = \Illuminate\Support\Facades\Cache::store('file')->remember('dev.asset.version', 3, function () {
+        $version = \Illuminate\Support\Facades\Cache::store('file')->remember('dev.asset.version', 10, function () {
             $paths = [
                 resource_path('views'),
                 resource_path('css'),
@@ -113,6 +113,7 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
 
     Route::prefix('reports')->group(function () {
         Route::get('attendance', [ReportController::class, 'attendance']);
+        Route::get('attendance/download-url', [ReportController::class, 'downloadUrl']);
     });
 
     Route::prefix('admin/resources')->group(function () {
@@ -131,3 +132,7 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
         Route::post('password', [ProfileController::class, 'updatePassword']);
     });
 });
+
+Route::get('mobile/reports/attendance/download', [ReportController::class, 'download'])
+    ->middleware('signed')
+    ->name('mobile.reports.attendance.download');
