@@ -17,7 +17,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 
 class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents, WithTitle
 {
-    private const HEADERS = [
+    public const HEADERS = [
         'No. ID',
         'Nama',
         'Normal Hari Kerja',
@@ -36,6 +36,14 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
         'Libur Perusahaan',
         'Libur Tanggal Merah',
         'Keterangan',
+    ];
+
+    public const NOTES = [
+        'Libur Tanggal Merah = libur dari data hari libur nasional (tidak memotong cuti)',
+        'Cuti Bersama = mengurangi saldo cuti tahunan karyawan',
+        'Libur Perusahaan = kebijakan perusahaan, tidak mengurangi cuti tahunan karyawan',
+        'Absent = total tidak hadir tanpa keterangan',
+        'Terlambat = total terlambat dalam satu bulan (setiap keterlambatan dihitung minimal 1 jam, dibulatkan ke atas per jam)',
     ];
 
     public function __construct(private array $report) {}
@@ -137,6 +145,11 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
 
     private function reportTitle(): string
     {
+        return self::titleText();
+    }
+
+    public static function titleText(): string
+    {
         $company = trim((string) Setting::get('company_name', ''));
 
         return $company === ''
@@ -146,22 +159,22 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
 
     private function periodLabel(): string
     {
-        /** @var CarbonInterface $start */
-        $start = $this->report['start_date'];
-        /** @var CarbonInterface $end */
-        $end = $this->report['end_date'];
+        return self::periodText($this->report['start_date'], $this->report['end_date']);
+    }
 
+    public static function periodText(CarbonInterface $start, CarbonInterface $end): string
+    {
         return sprintf(
             'PERIODE Tgl. %d %s s.d %d %s %d',
             $start->day,
-            $this->monthName($start->month),
+            self::monthName($start->month),
             $end->day,
-            $this->monthName($end->month),
+            self::monthName($end->month),
             $end->year
         );
     }
 
-    private function monthName(int $month): string
+    private static function monthName(int $month): string
     {
         return [
             1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun',
@@ -254,15 +267,7 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
 
     private function writeNotes($sheet, int $notesRow): void
     {
-        $notes = [
-            'Libur Tanggal Merah = libur dari data hari libur nasional (tidak memotong cuti)',
-            'Cuti Bersama = mengurangi saldo cuti tahunan karyawan',
-            'Libur Perusahaan = kebijakan perusahaan, tidak mengurangi cuti tahunan karyawan',
-            'Absent = total tidak hadir tanpa keterangan',
-            'Terlambat = total terlambat dalam satu bulan (setiap keterlambatan dihitung minimal 1 jam, dibulatkan ke atas per jam)',
-        ];
-
-        foreach ($notes as $index => $note) {
+        foreach (self::NOTES as $index => $note) {
             $row = $notesRow + $index;
             $sheet->mergeCells("Q{$row}:R{$row}");
             $sheet->setCellValue("Q{$row}", $note);

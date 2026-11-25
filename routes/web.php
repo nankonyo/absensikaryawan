@@ -91,6 +91,7 @@ Route::middleware(['auth', 'role:direksi,admin'])->prefix('admin')->name('admin.
 
     // Reports
     Route::get('/reports', [App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/attendance/preview', [App\Http\Controllers\Admin\ReportController::class, 'preview'])->name('reports.attendance.preview');
     Route::post('/reports/attendance', [App\Http\Controllers\Admin\ReportController::class, 'attendance'])->name('reports.attendance');
 
     // Settings

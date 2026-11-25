@@ -242,6 +242,10 @@ const initDatepickers = (root = document) => {
         'datetime-local': { enableTime: true, time_24hr: true, dateFormat: 'Y-m-d\\TH:i', altFormat: 'd-m-Y H:i' },
     };
 
+    const placeholders = isIndonesian
+        ? { date: 'Pilih tanggal', month: 'Pilih bulan', time: 'Pilih jam', 'datetime-local': 'Pilih tanggal & jam' }
+        : { date: 'Select date', month: 'Select month', time: 'Select time', 'datetime-local': 'Select date & time' };
+
     root.querySelectorAll('input[type="date"], input[type="month"], input[type="time"], input[type="datetime-local"]').forEach((input) => {
         if (input.dataset.datepickerReady) return;
         input.dataset.datepickerReady = 'true';
@@ -254,6 +258,11 @@ const initDatepickers = (root = document) => {
             monthSelectorType: 'dropdown',
             minDate: input.getAttribute('min') || null,
             maxDate: input.getAttribute('max') || null,
+            onReady(_, __, instance) {
+                if (instance.altInput) {
+                    instance.altInput.placeholder = input.getAttribute('placeholder') || placeholders[input.type];
+                }
+            },
         });
     });
 };

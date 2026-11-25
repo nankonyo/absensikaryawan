@@ -140,4 +140,25 @@ class AttendanceReportExportTest extends TestCase
             fn ($export) => $export instanceof AttendanceReportExport
         );
     }
+
+    public function test_attendance_report_preview_returns_inline_pdf(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.reports.attendance.preview', [
+                'start_date' => '2026-11-02',
+                'end_date' => '2026-11-06',
+            ]))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_attendance_report_preview_requires_a_valid_date_range(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.reports.attendance.preview', [
+                'start_date' => '2026-11-06',
+                'end_date' => '2026-11-02',
+            ]))
+            ->assertSessionHasErrors('end_date');
+    }
 }

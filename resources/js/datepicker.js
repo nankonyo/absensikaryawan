@@ -70,7 +70,7 @@ const enhanceInput = (input, type) => {
                 return;
             }
 
-            instance.altInput.placeholder = placeholders[type];
+            instance.altInput.placeholder = input.getAttribute('placeholder') || placeholders[type];
 
             const label = input.getAttribute('aria-label');
             if (label) {
