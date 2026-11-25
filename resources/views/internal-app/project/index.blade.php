@@ -13,14 +13,20 @@
 
     <div class="flex flex-wrap items-center justify-between gap-3">
         <h2 class="font-bold text-slate-800">Proyek</h2>
-        <button @click="modal=true" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><i class="fa-solid fa-plus mr-1"></i>Proyek Baru</button>
+        <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
+            <form method="GET" action="{{ route('internal.projects.index') }}" class="flex min-w-[240px] flex-1 items-center gap-2 sm:max-w-md">
+                <input name="q" value="{{ $search ?? '' }}" placeholder="Cari project, kode, daerah, instansi..." class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                <button class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+            <button @click="modal=true" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white"><i class="fa-solid fa-plus mr-1"></i>Proyek Baru</button>
+        </div>
     </div>
 
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         @forelse($projects as $p)
         <div class="ia-card p-5">
             <div class="flex items-start justify-between gap-3">
-                <div><span class="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style="background:{{ $p->color ?: '#D34B52' }}">{{ strtoupper($p->status) }}</span><h3 class="mt-2 text-lg font-bold">{{ $p->name }}</h3><p class="text-xs text-slate-500">{{ $p->code ?: 'Tanpa kode' }} · {{ $p->owner_name ?: '-' }}</p>@if($p->daerah || $p->instansi)<p class="text-[11px] text-slate-400">{{ $p->daerah ?: '-' }} · {{ $p->instansi ?: '-' }}</p>@endif</div>
+                <div><span class="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style="background:{{ $p->color ?: '#D34B52' }}">{{ ucwords(str_replace('_', ' ', $p->status)) }}</span><h3 class="mt-2 text-lg font-bold">{{ $p->name }}</h3><p class="text-xs text-slate-500">{{ $p->code ?: 'Tanpa kode' }} · {{ $p->owner_name ?: '-' }}</p>@if($p->daerah || $p->instansi)<p class="text-[11px] text-slate-400">{{ $p->daerah ?: '-' }} · {{ $p->instansi ?: '-' }}</p>@endif</div>
                 <span class="text-xs font-bold text-slate-500">{{ $p->progress }}%</span>
             </div>
             <p class="mt-2 line-clamp-2 min-h-[32px] text-xs text-slate-500">{{ $p->description }}</p>
@@ -92,9 +98,12 @@
                 <input name="account_password" type="password" placeholder="Password akun" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
                 <textarea name="notes" rows="3" placeholder="Catatan project / credential tambahan" class="rounded-xl border border-slate-200 px-3 py-2 text-sm sm:col-span-2"></textarea>
 
-                <select name="members[]" data-ajax-url="{{ route('internal.ajax.options', ['type' => 'users']) }}" multiple class="rounded-xl border border-slate-200 px-3 py-2 text-sm sm:col-span-2 h-28">
-                    @foreach($users as $u)<option value="{{ $u['id'] }}">{{ $u['name'] }}</option>@endforeach
-                </select>
+                <div class="sm:col-span-2">
+                    <label class="mb-1 block text-xs font-semibold text-slate-500">Tim Project (multiple)</label>
+                    <select name="members[]" multiple class="h-28 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                        @foreach($users as $u)<option value="{{ $u['id'] }}">{{ $u['name'] }}</option>@endforeach
+                    </select>
+                </div>
                 <button class="rounded-xl bg-blue-600 py-2.5 font-semibold text-white sm:col-span-2">Simpan Proyek</button>
             </form>
         </div>

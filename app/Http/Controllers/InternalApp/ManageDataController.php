@@ -60,7 +60,14 @@ class ManageDataController extends Controller
     {
         abort_unless(auth()->user()?->isAdmin(), 403);
 
-        return response()->json(['status' => false, 'message' => 'Pengiriman email mingguan belum dikonfigurasi.'], 422);
+        $sent = app(\App\Services\ActivityReportMailService::class)->send('weekly');
+
+        return response()->json([
+            'status' => true,
+            'message' => $sent > 0
+                ? 'Laporan aktivitas terkirim ke '.$sent.' atasan.'
+                : 'Tidak ada aktivitas pada periode ini, email tidak dikirim.',
+        ]);
     }
 
     public function saveWeeklyEmailSettings(Request $request)

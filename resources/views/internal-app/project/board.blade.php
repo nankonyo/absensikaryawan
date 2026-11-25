@@ -65,7 +65,12 @@
                 <input name="title" placeholder="Judul task" class="rounded-xl border border-slate-200 px-3 py-2 text-sm sm:col-span-2" required>
                 <select name="status" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">@foreach($statuses as $s)<option value="{{ $s }}">{{ $labels[$s] }}</option>@endforeach</select>
                 <select name="priority" class="rounded-xl border border-slate-200 px-3 py-2 text-sm"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select>
-                <select name="assignee_id" data-ajax-url="{{ route('internal.ajax.options', ['type' => 'users']) }}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm"><option value="">Unassigned</option>@foreach($users as $u)<option value="{{ $u['id'] }}">{{ $u['name'] }}</option>@endforeach</select>
+                <div class="sm:col-span-2">
+                    <label class="mb-1 block text-xs font-semibold text-slate-500">Assignments (multiple)</label>
+                    <select name="assignee_ids[]" multiple class="h-28 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                        @foreach($users as $u)<option value="{{ $u['id'] }}">{{ $u['name'] }}</option>@endforeach
+                    </select>
+                </div>
                 <input name="due_date" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
                 <input name="start_date" type="date" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
                 <input name="estimated_hours" type="number" step="0.5" placeholder="Estimasi jam" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
@@ -98,7 +103,7 @@ async function createTask(e){
     const fd = new FormData(e.target);
     const payload = Object.fromEntries(fd.entries());
     payload.project_id = Number(payload.project_id);
-    payload.assignee_id = payload.assignee_id ? Number(payload.assignee_id) : null;
+    payload.assignee_ids = fd.getAll('assignee_ids[]').map(Number); delete payload.assignee_id;
     try { const d = await postJson('{{ route('internal.projects.tasks.store') }}', payload); iaToast(d.message); setTimeout(()=>iaReload(),500); }
     catch(err){ iaToast(err.message,false); }
     return false;

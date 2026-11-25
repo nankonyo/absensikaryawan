@@ -3,9 +3,21 @@
 @section('subtitle', 'Riwayat pengiriman email laporan mingguan & isi kontennya')
 
 @section('body')
-<div x-data="{ open: false, body: '', subject: '', info: {} }"
+<div x-data="emailLogsApp()"
      @open-email.window="open = true; body = $event.detail.body || ''; subject = $event.detail.subject || ''; info = $event.detail"
      class="space-y-5">
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h2 class="text-lg font-bold text-slate-800">Riwayat Pengiriman Email</h2>
+            <p class="text-xs text-slate-500">Laporan aktivitas karyawan dan project management dikirim ke atasan masing-masing.</p>
+        </div>
+        <button type="button" @click="sendReport" :disabled="sending"
+                class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span x-text="sending ? 'Mengirim...' : 'Kirim Laporan Manual'"></span>
+        </button>
+    </div>
 
     <div class="grid gap-4 sm:grid-cols-3">
         <div class="ia-card p-4"><p class="text-xs font-semibold text-slate-400">Total Email</p><p class="mt-1 text-2xl font-black text-slate-800">{{ number_format($counts['total']) }}</p></div>
@@ -79,6 +91,45 @@
 </div>
 
 <script>
+function emailLogsApp() {
+    return {
+        open: false,
+        body: '',
+        subject: '',
+        info: {},
+        sending: false,
+        sendReport() {
+            sendReportNow(this);
+        },
+    };
+}
+
+async function sendReportNow(component) {
+    component.sending = true;
+    if (window.iaStartProgress) window.iaStartProgress('Mengirim laporan aktivitas...');
+
+    try {
+        const response = await fetch('{{ route('internal.email-logs.send-report') }}', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({}),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Gagal mengirim laporan.');
+        if (window.toastr) window.toastr.success(data.message, 'Laporan Aktivitas');
+        setTimeout(() => window.iaReload ? window.iaReload() : window.location.reload(), 900);
+    } catch (error) {
+        if (window.toastr) window.toastr.error(error.message, 'Gagal');
+    } finally {
+        component.sending = false;
+        if (window.iaFinishProgress) window.iaFinishProgress();
+    }
+}
+
 async function openEmailLog(id) {
     try {
         const r = await fetch('{{ url('internal/email-logs') }}/' + id, { headers: { 'Accept': 'application/json' } });

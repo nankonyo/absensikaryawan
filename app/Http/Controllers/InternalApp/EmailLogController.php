@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\InternalApp;
 
+use App\Models\Setting;
 use App\Models\System\InternalAppInstallation;
+use App\Services\ActivityReportMailService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +43,24 @@ class EmailLogController extends Controller
         ];
 
         return view('internal-app.email-logs.index', compact('items', 'counts', 'q', 'status'));
+    }
+
+    public function sendReport(Request $request)
+    {
+        abort_unless($this->isAdmin(), 403);
+
+        $frequency = (string) $request->input('frequency', Setting::get('activity_report_frequency', 'weekly'));
+        $frequency = in_array($frequency, ['daily', 'weekly'], true) ? $frequency : 'weekly';
+
+        $sent = app(ActivityReportMailService::class)->send($frequency);
+
+        return response()->json([
+            'status' => true,
+            'sent' => $sent,
+            'message' => $sent > 0
+                ? 'Laporan aktivitas terkirim ke '.$sent.' atasan.'
+                : 'Tidak ada aktivitas pada periode ini. Email laporan tidak dikirim.',
+        ]);
     }
 
     public function show($id)

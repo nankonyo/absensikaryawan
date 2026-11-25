@@ -23,7 +23,9 @@ class ProjectController extends Controller
 
     public function index(Request $request)
     {
-        $projects = $this->projectsQuery()->get();
+        $search = trim((string) $request->query('q'));
+
+        $projects = $this->projectsQuery($search !== '' ? $search : null)->get();
         $metrics = [
             'total' => $projects->count(),
             'in_progress' => $projects->where('status', 'in_progress')->count(),
@@ -57,7 +59,7 @@ class ProjectController extends Controller
             ->select('m.project_id', 'm.user_id', DB::raw("COALESCE(NULLIF(p.nick_name, ''), TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')), users.user_name) as nama"))
             ->get()->groupBy('project_id');
 
-        return view('internal-app.project.index', compact('projects', 'metrics', 'activeTasks', 'recentTasks', 'users', 'members'));
+        return view('internal-app.project.index', compact('projects', 'metrics', 'activeTasks', 'recentTasks', 'users', 'members', 'search'));
     }
 
     public function store(Request $request)
@@ -175,8 +177,9 @@ class ProjectController extends Controller
             : null;
 
         $hasCredential = ! empty($project->account_password);
+        $users = InternalAppService::userOptions();
 
-        return view('internal-app.project.show', compact('project', 'members', 'tasks', 'logs', 'notes', 'lastStatusBy', 'hasCredential'));
+        return view('internal-app.project.show', compact('project', 'members', 'tasks', 'logs', 'notes', 'lastStatusBy', 'hasCredential', 'users'));
     }
 
     public function note(Request $request, $id)
@@ -253,6 +256,40 @@ class ProjectController extends Controller
         return response()->json(['status' => true, 'message' => 'Proyek dihapus.']);
     }
 
+    public function membersUpdate(Request $request, $id)
+    {
+        $request->validate([
+            'members' => 'nullable|array',
+            'members.*' => 'integer|exists:users,id',
+        ]);
+
+        $project = DB::table('internal_projects')->find($id);
+        abort_unless($project, 404);
+
+        $memberIds = array_values(array_unique(array_map('intval', (array) $request->input('members', []))));
+        if ((int) $project->owner_id > 0) {
+            $memberIds[] = (int) $project->owner_id;
+        }
+        $memberIds = array_values(array_unique($memberIds));
+
+        DB::table('internal_project_members')->where('project_id', $id)->where('role', '<>', 'owner')->delete();
+
+        foreach ($memberIds as $userId) {
+            DB::table('internal_project_members')->updateOrInsert(
+                ['project_id' => $id, 'user_id' => $userId],
+                [
+                    'role' => $userId === (int) $project->owner_id ? 'owner' : 'member',
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+        }
+
+        InternalAppService::projectActivity((int) $id, 'updated', 'Tim project diperbarui ('.count($memberIds).' anggota).');
+
+        return response()->json(['status' => true, 'message' => 'Tim project diperbarui.']);
+    }
+
     public function board(Request $request)
     {
         $projects = $this->projectsQuery()->get();
@@ -301,12 +338,13 @@ class ProjectController extends Controller
             ->leftJoin('users', 'users.id', '=', 'l.user_id')
             ->where('l.task_id', $id)->select('l.*', 'users.user_name')->orderByDesc('l.id')->get();
         $users = InternalAppService::userOptions();
+        $assignees = InternalAppService::taskAssigneeIds((int) $id);
         InternalAppService::touchPresence((int) $id);
 
         return view('internal-app.project.task', [
             'task' => $task, 'project' => $project, 'subtasks' => $subtasks, 'comments' => $comments,
             'worklogs' => $worklogs, 'attachments' => $attachments, 'logs' => $logs, 'users' => $users,
-            'statuses' => $this->statuses, 'priorities' => $this->priorities,
+            'statuses' => $this->statuses, 'priorities' => $this->priorities, 'assignees' => $assignees,
         ]);
     }
 
@@ -314,10 +352,17 @@ class ProjectController extends Controller
     {
         $v = $this->validateTask($request);
         $max = (int) DB::table('internal_tasks')->where('project_id', $v['project_id'])->where('status', $v['status'] ?? 'backlog')->max('position');
+        $assigneeIds = (array) ($v['assignee_ids'] ?? []);
+        unset($v['assignee_ids']);
+        if (! empty($assigneeIds)) {
+            $v['assignee_id'] = (int) reset($assigneeIds);
+        }
+
         $id = DB::table('internal_tasks')->insertGetId($v + [
             'reporter_id' => InternalAppService::userId(),
             'progress' => 0, 'position' => $max + 1, 'created_at' => now(), 'updated_at' => now(),
         ]);
+        InternalAppService::syncTaskAssignees((int) $id, $assigneeIds);
         InternalAppService::activity($id, 'created', 'Task dibuat');
         InternalAppService::refreshProjectProgress((int) $v['project_id']);
 
@@ -329,9 +374,19 @@ class ProjectController extends Controller
         $task = DB::table('internal_tasks')->find($id);
         abort_unless($task, 404);
         $v = $this->validateTask($request);
+        $assigneeIds = (array) ($v['assignee_ids'] ?? []);
+        unset($v['assignee_ids']);
+        if (! empty($assigneeIds)) {
+            $v['assignee_id'] = (int) reset($assigneeIds);
+        } elseif ($request->has('assignee_ids')) {
+            $v['assignee_id'] = null;
+        }
         $v['progress'] = $this->progressFromStatus($v['status'] ?? $task->status, (int) $task->progress);
         $v['updated_at'] = now();
         DB::table('internal_tasks')->where('id', $id)->update($v);
+        if ($request->has('assignee_ids')) {
+            InternalAppService::syncTaskAssignees((int) $id, $assigneeIds);
+        }
         InternalAppService::activity($id, 'updated', 'Task diperbarui');
         InternalAppService::refreshProjectProgress((int) $task->project_id);
 
@@ -494,6 +549,8 @@ class ProjectController extends Controller
             'status' => 'required|in:backlog,todo,in_progress,in_review,done',
             'priority' => 'required|in:low,medium,high,urgent',
             'assignee_id' => 'nullable|integer|exists:users,id',
+            'assignee_ids' => 'nullable|array',
+            'assignee_ids.*' => 'integer|exists:users,id',
             'start_date' => 'nullable|date', 'due_date' => 'nullable|date|after_or_equal:start_date',
             'estimated_hours' => 'nullable|numeric|min:0',
             'labels' => 'nullable|string|max:500',
@@ -521,11 +578,22 @@ class ProjectController extends Controller
         InternalAppService::refreshProjectProgress($projectId);
     }
 
-    protected function projectsQuery()
+    protected function projectsQuery(?string $search = null)
     {
         return DB::table('internal_projects as p')
             ->leftJoin('users as owner', 'owner.id', '=', 'p.owner_id')
             ->select('p.*', 'owner.user_name as owner_name')
+            ->when($search, function ($query, $search) {
+                $like = '%'.$search.'%';
+                $query->where(function ($query) use ($like) {
+                    $query->where('p.name', 'like', $like)
+                        ->orWhere('p.code', 'like', $like)
+                        ->orWhere('p.description', 'like', $like)
+                        ->orWhere('p.daerah', 'like', $like)
+                        ->orWhere('p.instansi', 'like', $like)
+                        ->orWhere('owner.user_name', 'like', $like);
+                });
+            })
             ->orderByDesc('p.updated_at');
     }
 

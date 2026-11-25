@@ -690,5 +690,15 @@ class Installation extends Model
         }
 
         InternalAppInstallation::ensureForRst();
+
+        if (! Schema::hasTable('internal_task_assignees')) {
+            Schema::create('internal_task_assignees', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('task_id')->constrained('internal_tasks')->cascadeOnDelete();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->timestamps();
+                $table->unique(['task_id', 'user_id']);
+            });
+        }
     }
 }

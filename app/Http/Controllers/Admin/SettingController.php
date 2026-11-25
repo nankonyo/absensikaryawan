@@ -9,6 +9,7 @@ use App\Models\OfficeLocation;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -56,6 +57,10 @@ class SettingController extends Controller
             'app_store_url' => (string) $value('app_store_url', ''),
             'activity_default_status' => (string) $value('activity_default_status', 'planned'),
             'activity_reminder_days' => (int) $value('activity_reminder_days', 1),
+            'activity_report_enabled' => filter_var($value('activity_report_enabled', false), FILTER_VALIDATE_BOOLEAN),
+            'activity_report_frequency' => (string) $value('activity_report_frequency', 'weekly'),
+            'activity_report_day' => (int) $value('activity_report_day', 5),
+            'activity_report_time' => (string) $value('activity_report_time', '18:00'),
         ];
 
         return view('admin.settings.index', compact('settings', 'office', 'initial'));
@@ -97,6 +102,10 @@ class SettingController extends Controller
             'app_store_url' => ['nullable', 'url', 'max:500'],
             'activity_default_status' => ['required', 'in:planned,ongoing,completed,cancelled'],
             'activity_reminder_days' => ['required', 'integer', 'min:0', 'max:30'],
+            'activity_report_enabled' => ['boolean'],
+            'activity_report_frequency' => ['required', 'in:daily,weekly'],
+            'activity_report_day' => ['required', 'integer', 'between:1,7'],
+            'activity_report_time' => ['required', 'date_format:H:i'],
         ]);
 
         $stringKeys = [
@@ -111,9 +120,13 @@ class SettingController extends Controller
             Setting::set($key, $data[$key] ?? null);
         }
 
-        foreach (['late_tolerance', 'annual_leave_quota', 'face_recognition_threshold', 'mail_port', 'activity_reminder_days'] as $key) {
+        foreach (['late_tolerance', 'annual_leave_quota', 'face_recognition_threshold', 'mail_port', 'activity_reminder_days', 'activity_report_day'] as $key) {
             Setting::set($key, $data[$key] ?? 0, 'integer');
         }
+
+        Setting::set('activity_report_enabled', $request->boolean('activity_report_enabled'), 'boolean');
+        Setting::set('activity_report_frequency', $data['activity_report_frequency'] ?? 'weekly');
+        Setting::set('activity_report_time', $data['activity_report_time'] ?? '18:00');
 
         $weeklyHolidays = collect($data['weekly_holidays'] ?? [])
             ->map(fn ($day) => (int) $day)
@@ -169,6 +182,30 @@ class SettingController extends Controller
         }
 
         return redirect()->route('admin.settings.index')->with('success', __('ui.settings_updated'));
+    }
+
+    public function runScheduler(Request $request)
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        try {
+            Artisan::call('schedule:run');
+            $output = trim(Artisan::output());
+
+            return response()->json([
+                'status' => true,
+                'message' => $output !== ''
+                    ? 'Scheduler dijalankan. '.$output
+                    : 'Scheduler dijalankan. Tidak ada task yang jatuh tempo saat ini.',
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal menjalankan scheduler: '.$exception->getMessage(),
+            ], 422);
+        }
     }
 
     public function testEmail(Request $request)

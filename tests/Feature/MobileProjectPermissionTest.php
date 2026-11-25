@@ -38,6 +38,20 @@ class MobileProjectPermissionTest extends TestCase
         return User::factory()->create(['role_id' => $role->id]);
     }
 
+    private function grant(User $user, string $code, string $action): void
+    {
+        DB::table('permissions')->insert([
+            'first_string_key' => $user->role?->slug,
+            'first_big_integer_key' => $user->role_id,
+            'code' => $code,
+            'action' => $action,
+            'model' => 'feature',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     public function test_auth_payload_exposes_role_feature_permissions(): void
     {
         $user = $this->makeUserWithPermissions(['read', 'create']);
@@ -86,6 +100,51 @@ class MobileProjectPermissionTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseMissing('internal_projects', ['name' => 'Tidak Boleh']);
+    }
+
+    public function test_mobile_can_update_project_team_and_task_assignments(): void
+    {
+        $user = $this->makeUserWithPermissions(['read', 'create', 'update']);
+        $this->grant($user, 'internalapp.project.kanban', 'update');
+        $token = ApiToken::issue($user, 'test');
+        $member = User::factory()->create();
+
+        $projectId = DB::table('internal_projects')->insertGetId([
+            'name' => 'Project Tim',
+            'owner_id' => $user->id,
+            'status' => 'in_progress',
+            'progress' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/mobile/projects/'.$projectId.'/members', ['members' => [$member->id]])
+            ->assertOk();
+
+        $this->assertDatabaseHas('internal_project_members', [
+            'project_id' => $projectId,
+            'user_id' => $member->id,
+        ]);
+
+        $taskId = DB::table('internal_tasks')->insertGetId([
+            'project_id' => $projectId,
+            'title' => 'Task Assignment',
+            'status' => 'todo',
+            'priority' => 'medium',
+            'progress' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/mobile/projects/tasks/'.$taskId, ['assignee_ids' => [$member->id]])
+            ->assertOk();
+
+        $this->assertDatabaseHas('internal_task_assignees', [
+            'task_id' => $taskId,
+            'user_id' => $member->id,
+        ]);
     }
 
     public function test_staff_without_read_permission_cannot_open_project_list(): void

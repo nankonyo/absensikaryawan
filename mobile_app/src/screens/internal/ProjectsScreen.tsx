@@ -19,6 +19,8 @@ export const ProjectsScreen = () => {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<{ id: number; name: string }[]>([]);
+  const [memberIds, setMemberIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -35,6 +37,7 @@ export const ProjectsScreen = () => {
     try {
       const response = await projectApi.index({ q: q || undefined });
       setProjects(response.data.data);
+      setUsers(response.data.users ?? []);
     } catch (err) {
       Alert.alert('Gagal memuat', apiMessage(err));
     } finally {
@@ -61,6 +64,7 @@ export const ProjectsScreen = () => {
         start_date: startDate.trim() || undefined,
         end_date: endDate.trim() || undefined,
         status,
+        members: memberIds,
       });
       setOpen(false);
       setName('');
@@ -69,6 +73,7 @@ export const ProjectsScreen = () => {
       setStartDate('');
       setEndDate('');
       setStatus('planning');
+      setMemberIds([]);
       await load();
       Alert.alert('Berhasil', 'Project berhasil dibuat.');
     } catch (err) {
@@ -172,9 +177,31 @@ export const ProjectsScreen = () => {
                   style={[styles.chip, status === item && styles.chipActive]}
                   onPress={() => setStatus(item)}
                 >
-                  <Text style={[styles.chipText, status === item && styles.chipTextActive]}>{item.replace(/_/g, ' ')}</Text>
+                  <Text style={[styles.chipText, status === item && styles.chipTextActive]}>
+                    {item === 'in_progress' ? 'In Progress' : item.replace(/_/g, ' ')}
+                  </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+
+            <Text style={styles.label}>Tim Project (multiple)</Text>
+            <View style={styles.chips}>
+              {users.map((member) => {
+                const active = memberIds.includes(member.id);
+                return (
+                  <TouchableOpacity
+                    key={member.id}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() =>
+                      setMemberIds((ids) =>
+                        ids.includes(member.id) ? ids.filter((id) => id !== member.id) : [...ids, member.id]
+                      )
+                    }
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{member.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             <Button label={saving ? 'Menyimpan...' : 'Simpan project'} onPress={submit} disabled={saving} />

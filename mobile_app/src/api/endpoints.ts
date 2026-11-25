@@ -97,7 +97,7 @@ export const teamApi = {
 
 export const projectApi = {
   index: (params?: { q?: string; page?: number }) =>
-    api.get<{ data: Project[]; current_page: number; last_page: number }>('/projects', { params }),
+    api.get<{ data: Project[]; current_page: number; last_page: number; users?: { id: number; name: string }[] }>('/projects', { params }),
   create: (payload: {
     name: string;
     code?: string;
@@ -105,8 +105,12 @@ export const projectApi = {
     start_date?: string;
     end_date?: string;
     status?: string;
+    members?: number[];
   }) => api.post<{ status: boolean; message: string; id: number }>('/projects', payload),
-  show: (id: number) => api.get<{ project: Project; tasks: Task[]; members: User[] }>(`/projects/${id}`),
+  show: (id: number) =>
+    api.get<{ project: Project; tasks: Task[]; members: User[]; available_users: { id: number; name: string }[] }>(`/projects/${id}`),
+  updateMembers: (id: number, members: number[]) =>
+    api.post<{ status: boolean; message: string }>(`/projects/${id}/members`, { members }),
   tasks: (id: number) => api.get<{ tasks: Task[] }>(`/projects/${id}/tasks`),
   kanban: (projectId?: number) =>
     api.get<{ statuses: string[]; board: Record<string, Task[]>; projects: Project[] }>('/projects/kanban', {
@@ -116,8 +120,13 @@ export const projectApi = {
     api.get<{ tasks: Task[]; projects: Project[] }>('/projects/gantt', {
       params: projectId ? { project_id: projectId } : {},
     }),
-  updateTask: (taskId: number, payload: { status?: string; progress?: number; assignee_id?: number; due_date?: string }) =>
-    api.post(`/projects/tasks/${taskId}`, payload),
+  updateTask: (taskId: number, payload: {
+    status?: string;
+    progress?: number;
+    assignee_id?: number;
+    assignee_ids?: number[];
+    due_date?: string;
+  }) => api.post(`/projects/tasks/${taskId}`, payload),
 };
 
 export const activityApi = {

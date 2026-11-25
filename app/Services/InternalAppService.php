@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\System\Installation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -130,6 +131,48 @@ class InternalAppService
                 'updated_at' => now(),
             ]);
         }
+    }
+
+    public static function taskAssigneeIds(int $taskId): array
+    {
+        if (! Schema::hasTable('internal_task_assignees')) {
+            return [];
+        }
+
+        return DB::table('internal_task_assignees')
+            ->where('task_id', $taskId)
+            ->orderBy('id')
+            ->pluck('user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    public static function syncTaskAssignees(int $taskId, array $userIds): void
+    {
+        if (! Schema::hasTable('internal_task_assignees')) {
+            Installation::executeSchemaDatabase();
+        }
+
+        if (! Schema::hasTable('internal_task_assignees')) {
+            return;
+        }
+
+        $ids = array_values(array_unique(array_filter(array_map('intval', $userIds))));
+        DB::table('internal_task_assignees')->where('task_id', $taskId)->delete();
+
+        foreach ($ids as $userId) {
+            DB::table('internal_task_assignees')->insert([
+                'task_id' => $taskId,
+                'user_id' => $userId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        DB::table('internal_tasks')->where('id', $taskId)->update([
+            'assignee_id' => $ids[0] ?? null,
+            'updated_at' => now(),
+        ]);
     }
 
     public static function taskProgress(int $taskId): int

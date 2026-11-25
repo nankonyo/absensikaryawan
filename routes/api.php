@@ -98,6 +98,7 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
         Route::get('gantt', [ProjectController::class, 'gantt']);
         Route::get('{id}', [ProjectController::class, 'show']);
         Route::get('{id}/tasks', [ProjectController::class, 'tasks']);
+        Route::post('{id}/members', [ProjectController::class, 'updateMembers']);
         Route::post('tasks/{task}', [ProjectController::class, 'updateTask']);
     });
 

@@ -30,6 +30,7 @@ Route::middleware('auth')->prefix('internal')->name('internal.')->group(function
         Route::get('projects/{id}/credential', [ProjectController::class, 'credential'])->name('credential');
         Route::get('projects/{id}', [ProjectController::class, 'show'])->name('show');
         Route::post('projects/{id}/update', [ProjectController::class, 'update'])->name('update');
+        Route::post('projects/{id}/members', [ProjectController::class, 'membersUpdate'])->name('members.update');
         Route::post('projects/{id}/note', [ProjectController::class, 'note'])->name('note');
         Route::post('projects/{id}/delete', [ProjectController::class, 'destroy'])->name('destroy');
         Route::get('tasks/{id}', [ProjectController::class, 'task'])->name('tasks.show');
@@ -125,6 +126,7 @@ Route::middleware('auth')->prefix('internal')->name('internal.')->group(function
 
         Route::prefix('email-logs')->name('email-logs.')->group(function () {
             Route::get('/', [EmailLogController::class, 'index'])->name('index');
+            Route::post('send-report', [EmailLogController::class, 'sendReport'])->name('send-report');
             Route::get('{id}', [EmailLogController::class, 'show'])->name('show');
         });
     });

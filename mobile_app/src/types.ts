@@ -96,6 +96,8 @@ export type Task = {
   due_date?: string | null;
   assignee_id?: number | null;
   assignee_name?: string | null;
+  assignee_ids?: number[];
+  assignee_names?: string[];
   project_name?: string | null;
 };
 

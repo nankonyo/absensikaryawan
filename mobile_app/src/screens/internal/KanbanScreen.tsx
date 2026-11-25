@@ -14,6 +14,9 @@ export const KanbanScreen = () => {
   const [projectId, setProjectId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const statusLabel = (status: string) =>
+    status === 'in_progress' ? 'In Progress' : status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+
   const load = useCallback(async (id?: number | null) => {
     try {
       const response = await projectApi.kanban(id ?? undefined);
@@ -66,7 +69,7 @@ export const KanbanScreen = () => {
         {statuses.map((status) => (
           <View key={status} style={styles.column}>
             <View style={styles.columnHeader}>
-              <Text style={styles.columnTitle}>{status.replace(/_/g, ' ').toUpperCase()}</Text>
+              <Text style={styles.columnTitle}>{statusLabel(status)}</Text>
               <Text style={styles.count}>{(board[status] ?? []).length}</Text>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.xl }}>

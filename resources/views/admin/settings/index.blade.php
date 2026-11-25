@@ -285,18 +285,71 @@
         </div>
 
         {{-- ACTIVITY --}}
-        <div x-show="tab === 'activity'" x-cloak class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 class="font-bold text-slate-800">Default Aktivitas</h2>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <x-ia.select label="Status Default" x-model="form.activity_default_status">
-                    <option value="planned">Planned</option>
-                    <option value="ongoing">Ongoing</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                </x-ia.select>
-                <div class="space-y-1.5">
-                    <label class="block text-sm font-semibold text-slate-700">Reminder (hari sebelum)</label>
-                    <input type="number" x-model="form.activity_reminder_days" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm shadow-sm">
+        <div x-show="tab === 'activity'" x-cloak class="space-y-4">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 class="font-bold text-slate-800">Default Aktivitas</h2>
+                <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ia.select label="Status Default" x-model="form.activity_default_status">
+                        <option value="planned">Planned</option>
+                        <option value="ongoing">Ongoing</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </x-ia.select>
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-semibold text-slate-700">Reminder (hari sebelum)</label>
+                        <input type="number" x-model="form.activity_reminder_days" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm shadow-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 class="font-bold text-slate-800">Laporan Aktivitas ke Atasan</h2>
+                        <p class="text-xs text-slate-500">Kirim rekap aktivitas anggota tim ke atasan masing-masing secara otomatis.</p>
+                    </div>
+                    <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <input type="checkbox" x-model="form.activity_report_enabled" class="rounded border-slate-300">
+                        Aktif
+                    </label>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <x-ia.select label="Frekuensi" x-model="form.activity_report_frequency">
+                        <option value="daily">Setiap Hari</option>
+                        <option value="weekly">Setiap Minggu</option>
+                    </x-ia.select>
+                    <div class="space-y-1.5" x-show="form.activity_report_frequency === 'weekly'">
+                        <label class="block text-sm font-semibold text-slate-700">Hari Kirim</label>
+                        <select x-model.number="form.activity_report_day" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm shadow-sm">
+                            <option value="1">Senin</option>
+                            <option value="2">Selasa</option>
+                            <option value="3">Rabu</option>
+                            <option value="4">Kamis</option>
+                            <option value="5">Jumat</option>
+                            <option value="6">Sabtu</option>
+                            <option value="7">Minggu</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-semibold text-slate-700">Jam Kirim</label>
+                        <input type="time" x-model="form.activity_report_time" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm shadow-sm">
+                    </div>
+                </div>
+
+                <p class="mt-3 text-xs text-slate-500">
+                    Jika tidak ada aktivitas pada periode berjalan, email tidak akan dikirim. Email ditujukan ke atasan langsung masing-masing member.
+                </p>
+
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                    <div>
+                        <p class="text-sm font-semibold text-blue-900">Jalankan Scheduler</p>
+                        <p class="text-xs text-blue-700">Eksekusi <code>php artisan schedule:run</code> sekarang tanpa menunggu cron.</p>
+                    </div>
+                    <button type="button" @click="runScheduler" :disabled="runningScheduler"
+                            class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
+                        <i class="fa-solid fa-play mr-1"></i><span x-text="runningScheduler ? 'Menjalankan...' : 'Jalankan Sekarang'"></span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -319,6 +372,7 @@
                 tab: 'identity',
                 saving: false,
                 testingEmail: false,
+                runningScheduler: false,
                 uploading: false,
                 uploadProgress: 0,
                 previewLogo: initial.company_logo_url,
@@ -359,6 +413,10 @@
                     app_store_url: initial.app_store_url,
                     activity_default_status: initial.activity_default_status,
                     activity_reminder_days: initial.activity_reminder_days,
+                    activity_report_enabled: initial.activity_report_enabled,
+                    activity_report_frequency: initial.activity_report_frequency,
+                    activity_report_day: initial.activity_report_day,
+                    activity_report_time: initial.activity_report_time,
                     test_email_to: '',
                 },
 
@@ -447,6 +505,31 @@
                     };
 
                     xhr.send(formData);
+                },
+
+                runScheduler() {
+                    this.runningScheduler = true;
+                    if (window.iaStartProgress) window.iaStartProgress('Menjalankan scheduler...');
+
+                    fetch('{{ route('admin.settings.run-scheduler') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        },
+                    })
+                        .then(async (response) => {
+                            const data = await response.json();
+                            if (!response.ok) throw new Error(data.message || 'Gagal menjalankan scheduler.');
+                            if (window.toastr) window.toastr.success(data.message, 'Berhasil');
+                        })
+                        .catch((error) => {
+                            if (window.toastr) window.toastr.error(error.message, 'Gagal');
+                        })
+                        .finally(() => {
+                            this.runningScheduler = false;
+                            if (window.iaFinishProgress) window.iaFinishProgress();
+                        });
                 },
 
                 sendTestEmail() {

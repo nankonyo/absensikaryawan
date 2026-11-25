@@ -29,7 +29,10 @@ class ProjectController extends Controller
             ->orderByDesc('p.updated_at')
             ->paginate((int) ($request->query('per_page') ?: 15));
 
-        return response()->json($projects);
+        $payload = $projects->toArray();
+        $payload['users'] = \App\Services\InternalAppService::userOptions();
+
+        return response()->json($payload);
     }
 
     public function store(Request $request)
@@ -114,10 +117,22 @@ class ProjectController extends Controller
             ->select('m.role', 'u.id', 'u.name', 'u.email')
             ->get();
 
+        $users = \App\Services\InternalAppService::userOptions();
+        $userNames = collect($users)->pluck('name', 'id');
+
+        $tasks = $tasks->map(function ($task) use ($userNames) {
+            $assigneeIds = \App\Services\InternalAppService::taskAssigneeIds((int) $task->id);
+            $task->assignee_ids = $assigneeIds;
+            $task->assignee_names = collect($assigneeIds)->map(fn ($uid) => $userNames[$uid] ?? null)->filter()->values()->all();
+
+            return $task;
+        });
+
         return response()->json([
             'project' => $project,
             'tasks' => $tasks,
             'members' => $members,
+            'available_users' => $users,
         ]);
     }
 
@@ -184,6 +199,42 @@ class ProjectController extends Controller
         ]);
     }
 
+    public function updateMembers(Request $request, int $id)
+    {
+        $this->authorizeFeature($request, 'internalapp.project.project', 'update');
+
+        $data = $request->validate([
+            'members' => ['nullable', 'array'],
+            'members.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $project = DB::table('internal_projects')->find($id);
+        abort_unless($project, 404);
+
+        $memberIds = array_values(array_unique(array_map('intval', (array) ($data['members'] ?? []))));
+        if ((int) $project->owner_id > 0) {
+            $memberIds[] = (int) $project->owner_id;
+        }
+        $memberIds = array_values(array_unique($memberIds));
+
+        DB::table('internal_project_members')->where('project_id', $id)->where('role', '<>', 'owner')->delete();
+
+        foreach ($memberIds as $userId) {
+            DB::table('internal_project_members')->updateOrInsert(
+                ['project_id' => $id, 'user_id' => $userId],
+                [
+                    'role' => $userId === (int) $project->owner_id ? 'owner' : 'member',
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+        }
+
+        \App\Services\InternalAppService::projectActivity((int) $id, 'updated', 'Tim project diperbarui ('.count($memberIds).' anggota).');
+
+        return response()->json(['status' => true, 'message' => 'Tim project diperbarui.']);
+    }
+
     public function updateTask(Request $request, int $id)
     {
         $this->authorizeFeature($request, 'internalapp.project.kanban', 'update');
@@ -192,6 +243,8 @@ class ProjectController extends Controller
             'status' => ['nullable', 'in:backlog,todo,in_progress,in_review,done'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
             'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+            'assignee_ids' => ['nullable', 'array'],
+            'assignee_ids.*' => ['integer', 'exists:users,id'],
             'due_date' => ['nullable', 'date'],
         ]);
 
@@ -208,15 +261,28 @@ class ProjectController extends Controller
             };
         }
 
+        $assigneeIds = array_key_exists('assignee_ids', $data)
+            ? array_values(array_unique(array_map('intval', (array) $data['assignee_ids'])))
+            : null;
+
         DB::table('internal_tasks')->where('id', $id)->update(array_filter([
             'status' => $data['status'] ?? null,
             'progress' => $progress,
-            'assignee_id' => $data['assignee_id'] ?? null,
+            'assignee_id' => $assigneeIds !== null ? ($assigneeIds[0] ?? null) : ($data['assignee_id'] ?? null),
             'due_date' => $data['due_date'] ?? null,
             'updated_at' => now(),
         ], fn ($value) => ! is_null($value)));
 
-        return response()->json(['message' => 'Task diperbarui.', 'task' => DB::table('internal_tasks')->find($id)]);
+        if ($assigneeIds !== null) {
+            \App\Services\InternalAppService::syncTaskAssignees($id, $assigneeIds);
+        }
+
+        \App\Services\InternalAppService::activity($id, 'updated', 'Task diperbarui via mobile');
+
+        $task = DB::table('internal_tasks')->find($id);
+        $task->assignee_ids = \App\Services\InternalAppService::taskAssigneeIds($id);
+
+        return response()->json(['message' => 'Task diperbarui.', 'task' => $task]);
     }
 
     private function authorizeFeature(Request $request, string $code, string $action = 'read'): void

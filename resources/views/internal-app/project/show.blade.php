@@ -19,7 +19,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $statusColor }}">{{ strtoupper(str_replace('_', ' ', $project->status)) }}</span>
+                    <span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $statusColor }}">{{ ucwords(str_replace('_', ' ', $project->status)) }}</span>
                     <span class="text-[11px] text-slate-400">{{ $project->code ?: 'Tanpa kode' }}</span>
                 </div>
                 <h1 class="mt-2 text-2xl font-black text-slate-800">{{ $project->name }}</h1>
@@ -123,7 +123,10 @@
 
     <div class="grid gap-5 xl:grid-cols-3">
         <div class="ia-card p-5">
-            <h2 class="font-bold text-slate-800">Tim ({{ $members->count() }})</h2>
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="font-bold text-slate-800">Tim ({{ $members->count() }})</h2>
+                <button @click="team=true" class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">Update Tim</button>
+            </div>
             <div class="mt-3 space-y-2">
                 @forelse($members as $m)
                 <div class="flex items-center gap-2 rounded-xl border border-slate-100 p-2">
@@ -146,7 +149,7 @@
                 <a href="{{ route('internal.projects.tasks.show', $t->id) }}" class="flex items-center justify-between gap-3 rounded-xl border border-slate-100 p-3 hover:bg-slate-50">
                     <div class="min-w-0">
                         <p class="truncate text-sm font-semibold text-slate-700">{{ $t->title }}</p>
-                        <p class="text-[11px] text-slate-400">{{ $t->assignee_name }} · {{ str_replace('_', ' ', $t->status) }}</p>
+                        <p class="text-[11px] text-slate-400">{{ $t->assignee_name }} · {{ ucwords(str_replace('_', ' ', $t->status)) }}</p>
                     </div>
                     <span class="text-xs font-bold text-slate-500">{{ $t->progress }}%</span>
                 </a>
@@ -209,9 +212,34 @@
             </form>
         </div>
     </div>
+
+    <div x-show="team" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div class="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl" @click.outside="team=false">
+            <div class="flex items-center justify-between"><h3 class="font-bold">Update Tim Project</h3><button @click="team=false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button></div>
+            <p class="mt-1 text-xs text-slate-500">Pilih anggota tim. Owner project selalu dipertahankan.</p>
+            <form class="mt-4 space-y-3" onsubmit="return saveTeam(event)">
+                <select name="members[]" multiple class="h-56 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                    @foreach($users as $u)
+                        <option value="{{ $u['id'] }}" @selected($members->contains(fn ($m) => (int) $m->user_id === (int) $u['id']))>{{ $u['name'] }}</option>
+                    @endforeach
+                </select>
+                <button class="w-full rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white">Simpan Tim</button>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
+async function saveTeam(e){
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    try {
+        const d = await postJson('{{ route('internal.projects.members.update', ['id'=>$project->id]) }}', { members: fd.getAll('members[]').map(Number) });
+        iaToast(d.message);
+        setTimeout(()=>iaReload(), 500);
+    } catch (err) { iaToast(err.message, false); }
+    return false;
+}
 async function saveProject(e){
     e.preventDefault();
     const fd = new FormData(e.target);

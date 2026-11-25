@@ -5,6 +5,8 @@
 @section('body')
 @php
     $labelStatus = ['backlog'=>'Backlog','todo'=>'To Do','in_progress'=>'In Progress','in_review'=>'In Review','done'=>'Done'];
+    $assigneeNames = collect($users)->whereIn('id', $assignees ?? [])->pluck('name');
+    $assigneeLabel = $assigneeNames->isNotEmpty() ? $assigneeNames->implode(', ') : 'Unassigned';
 @endphp
 <div x-data="{edit:false}" class="grid gap-5 xl:grid-cols-[1.4fr_.6fr]">
     <div class="space-y-5">
@@ -13,7 +15,7 @@
                 <div>
                     <a href="{{ route('internal.projects.board', ['project_id'=>$task->project_id]) }}" class="text-xs font-semibold text-blue-600"><i class="fa-solid fa-arrow-left mr-1"></i>{{ $project->name ?? '-' }}</a>
                     <h1 id="pm-task-link" class="mt-2 text-2xl font-black text-slate-800">{{ $task->title }}</h1>
-                    <p class="mt-1 text-xs text-slate-500">{{ $task->assignee_name }} · Deadline {{ $task->due_date ?: '-' }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ $assigneeLabel }} · Deadline {{ $task->due_date ?: '-' }}</p>
                 </div>
                 <button @click="edit=true" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
             </div>
@@ -118,7 +120,11 @@
                 <input name="title" value="{{ $task->title }}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm sm:col-span-2" required>
                 <select name="status" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">@foreach($statuses as $s)<option value="{{ $s }}" @selected($task->status===$s)>{{ $labelStatus[$s] }}</option>@endforeach</select>
                 <select name="priority" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">@foreach($priorities as $p)<option value="{{ $p }}" @selected($task->priority===$p)>{{ ucfirst($p) }}</option>@endforeach</select>
-                <select name="assignee_id" data-ajax-url="{{ route('internal.ajax.options', ['type' => 'users']) }}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm"><option value="">Unassigned</option>@foreach($users as $u)<option value="{{ $u['id'] }}" @selected($task->assignee_id==$u['id'])>{{ $u['name'] }}</option>@endforeach</select>
+                <select name="assignee_ids[]" multiple class="h-28 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm sm:col-span-2">
+                    @foreach($users as $u)
+                        <option value="{{ $u['id'] }}" @selected(in_array((int) $u['id'], array_map('intval', $assignees ?? []), true))>{{ $u['name'] }}</option>
+                    @endforeach
+                </select>
                 <input name="due_date" type="date" value="{{ $task->due_date }}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
                 <input name="start_date" type="date" value="{{ $task->start_date }}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
                 <input name="estimated_hours" type="number" step="0.5" value="{{ $task->estimated_hours }}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm">
@@ -141,6 +147,6 @@ async function addWorklog(e){e.preventDefault();const fd=new FormData(e.target);
 async function uploadAttachment(e){e.preventDefault();try{const d=await postForm(TASK_BASE+'/attachment',new FormData(e.target));iaToast(d.message);setTimeout(()=>iaReload(),400);}catch(err){iaToast(err.message,false)}return false}
 async function startTimer(){try{const d=await postJson(TASK_BASE+'/worklog/start',{});iaToast(d.message);}catch(e){iaToast(e.message,false)}}
 async function stopTimer(){try{const d=await postJson(TASK_BASE+'/worklog/stop',{});iaToast(d.message);setTimeout(()=>iaReload(),400);}catch(e){iaToast(e.message,false)}}
-async function updateTask(e){e.preventDefault();const fd=new FormData(e.target);const payload=Object.fromEntries(fd.entries());payload.project_id={{ $task->project_id }};payload.assignee_id=payload.assignee_id?Number(payload.assignee_id):null;payload.is_milestone=fd.get('is_milestone')?1:0;try{const d=await postJson(TASK_BASE+'/update',payload);iaToast(d.message);setTimeout(()=>iaReload(),400);}catch(err){iaToast(err.message,false)}return false}
+async function updateTask(e){e.preventDefault();const fd=new FormData(e.target);const payload=Object.fromEntries(fd.entries());payload.project_id={{ $task->project_id }};payload.assignee_ids=fd.getAll('assignee_ids[]').map(Number);delete payload.assignee_id;payload.is_milestone=fd.get('is_milestone')?1:0;try{const d=await postJson(TASK_BASE+'/update',payload);iaToast(d.message);setTimeout(()=>iaReload(),400);}catch(err){iaToast(err.message,false)}return false}
 </script>
 @endsection
