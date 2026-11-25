@@ -37,7 +37,7 @@
 
                 <div class="space-y-1.5">
                     <label class="block text-sm font-semibold text-slate-700">Nama Aplikasi</label>
-                    <input type="text" x-model="form.app_name" placeholder="Contoh: RST Internal App"
+                    <input type="text" x-model="form.app_name" placeholder="Contoh: Raja HR"
                            class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100">
                     <p class="text-xs text-slate-500">Tampil di sidebar, judul halaman, dan login.</p>
                 </div>

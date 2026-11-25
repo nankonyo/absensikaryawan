@@ -1,52 +1,153 @@
-import subprocess
+#!/usr/bin/env python3
+"""Generate Raja HR mobile icons and splash assets without external tools."""
+
 from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / 'assets'
-ASSETS.mkdir(parents=True, exist_ok=True)
-TMP = Path('/tmp/rst-mobile-assets')
-TMP.mkdir(parents=True, exist_ok=True)
+RES = ROOT / 'android' / 'app' / 'src' / 'main' / 'res'
+FONT_BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 
-FONT = "Helvetica, Arial, sans-serif"
-GRAD = '''<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B33C43"/><stop offset="1" stop-color="#E2757B"/></linearGradient></defs>'''
+TOP = (179, 60, 67)       # #B33C43
+BOTTOM = (226, 117, 123)  # #E2757B
+BRAND = '#D34B52'
 
-def svg(body, size=1024, background='url(#g)'):
-    bg = f'<rect width="1024" height="1024" fill="{background}"/>'
-    return f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}">{GRAD}{bg}{body}</svg>'
 
-def text(x, y, size, value, weight=700, spacing=0, opacity=1, fill="#ffffff"):
-    ls = f' letter-spacing="{spacing}"' if spacing else ''
-    return f'<text x="{x}" y="{y}" text-anchor="middle" font-family="{FONT}" font-weight="{weight}" font-size="{size}" fill="{fill}" fill-opacity="{opacity}"{ls}>{value}</text>'
+def gradient(size):
+    img = Image.new('RGB', (size, size), TOP)
+    draw = ImageDraw.Draw(img)
+    for y in range(size):
+        ratio = y / max(size - 1, 1)
+        color = tuple(round(TOP[i] + (BOTTOM[i] - TOP[i]) * ratio) for i in range(3))
+        draw.line((0, y, size, y), fill=color)
+    return img.convert('RGBA')
 
-logs = {
-    'icon.svg': svg(
-        '<rect x="190" y="190" width="644" height="644" rx="90" fill="#ffffff" fill-opacity="0.10"/>'
-        + text(512, 610, 250, 'RST', spacing=22)
-        + text(512, 700, 62, 'INTERNAL', spacing=8)
-    ),
-    'adaptive-icon.svg': svg(
-        text(512, 585, 210, 'RST', spacing=18)
-        + text(512, 675, 58, 'INTERNAL', spacing=8)
-    , background='#D34B52'),
-    'splash-icon.svg': svg(
-        text(512, 510, 200, 'RST', spacing=18)
-        + text(512, 605, 54, 'INTERNAL APP', spacing=8)
-        + text(512, 685, 28, 'SISTEM ABSENSI KARYAWAN', weight=600, spacing=6)
-    , background='#D34B52'),
-    'favicon.svg': svg(
-        text(64, 84, 58, 'RST', spacing=2)
-    , size=128),
-}
 
-for name, content in logs.items():
-    src = TMP / name
-    src.write_text(content)
-    subprocess.run(['qlmanage', '-t', '-s', str(128 if name == 'favicon.svg' else 1024), '-o', str(TMP), str(src)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    generated = TMP / f'{name}.png'
-    if not generated.exists():
-        raise SystemExit(f'failed to generate {name}')
-    target = ASSETS / name.replace('.svg', '.png')
-    generated.replace(target)
-    print(target.name, target.stat().st_size)
+def rounded_rect(img, box, radius, fill):
+    overlay = Image.new('RGBA', img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(overlay).rounded_rectangle(box, radius=radius, fill=fill)
+    return Image.alpha_composite(img, overlay)
 
-print('assets generated')
+
+def text_width(font, value, spacing):
+    widths = [font.getlength(char) for char in value]
+    return sum(widths) + spacing * max(len(value) - 1, 0)
+
+
+def draw_spaced_text(draw, center_x, y, value, size, spacing=0, fill='white', font_path=FONT_BOLD):
+    font = ImageFont.truetype(font_path, size)
+    width = text_width(font, value, spacing)
+    x = center_x - width / 2
+    for char in value:
+        draw.text((x, y), char, font=font, fill=fill, anchor='lt')
+        x += font.getlength(char) + spacing
+
+
+def mark(size, with_background=True, rounded=True):
+    if with_background:
+        img = gradient(size)
+        if rounded:
+            inset = round(size * 0.185)
+            img = rounded_rect(
+                img,
+                (inset, inset, size - inset, size - inset),
+                round(size * 0.09),
+                (255, 255, 255, 26),
+            )
+    else:
+        img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+
+    draw = ImageDraw.Draw(img)
+    scale = size / 1024
+    draw_spaced_text(draw, size / 2, round(390 * scale), 'RAJA', round(190 * scale), round(16 * scale))
+    draw_spaced_text(draw, size / 2, round(595 * scale), 'HR', round(260 * scale), round(20 * scale))
+    return img
+
+
+def splash(size):
+    img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    scale = size / 1024
+    draw_spaced_text(draw, size / 2, round(390 * scale), 'RAJA HR', round(160 * scale), round(10 * scale))
+    draw_spaced_text(
+        draw,
+        size / 2,
+        round(610 * scale),
+        'SISTEM MANAJEMEN SDM',
+        round(34 * scale),
+        round(5 * scale),
+        fill=(255, 255, 255, 235),
+    )
+    return img
+
+
+def circular(img):
+    size = img.size[0]
+    mask = Image.new('L', (size, size), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, size, size), fill=255)
+    result = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    result.paste(img, (0, 0), mask)
+    return result
+
+
+def save_png(img, path, size=None):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if size and img.size != (size, size):
+        img = img.resize((size, size), Image.LANCZOS)
+    if path.suffix == '.webp':
+        img.save(path, 'WEBP', quality=95, method=6)
+    else:
+        img.save(path, 'PNG')
+    print(f'{path.relative_to(ROOT)} {img.size[0]}x{img.size[1]}')
+
+
+def main():
+    ASSETS.mkdir(parents=True, exist_ok=True)
+
+    icon = mark(1024)
+    adaptive = mark(1024, with_background=False)
+    splash_image = splash(1024)
+    favicon = mark(128)
+
+    save_png(icon, ASSETS / 'icon.png')
+    save_png(adaptive, ASSETS / 'adaptive-icon.png')
+    save_png(splash_image, ASSETS / 'splash-icon.png')
+    save_png(favicon, ASSETS / 'favicon.png')
+
+    splash_sizes = {
+        'mdpi': 288,
+        'hdpi': 432,
+        'xhdpi': 576,
+        'xxhdpi': 864,
+        'xxxhdpi': 1152,
+    }
+    for density, size in splash_sizes.items():
+        save_png(splash_image, RES / f'drawable-{density}' / 'splashscreen_logo.png', size)
+
+    launcher_sizes = {
+        'mdpi': 48,
+        'hdpi': 72,
+        'xhdpi': 96,
+        'xxhdpi': 144,
+        'xxxhdpi': 192,
+    }
+    foreground_sizes = {
+        'mdpi': 108,
+        'hdpi': 162,
+        'xhdpi': 216,
+        'xxhdpi': 324,
+        'xxxhdpi': 432,
+    }
+    for density, size in launcher_sizes.items():
+        folder = RES / f'mipmap-{density}'
+        save_png(icon, folder / 'ic_launcher.webp', size)
+        save_png(circular(icon), folder / 'ic_launcher_round.webp', size)
+        save_png(adaptive, folder / 'ic_launcher_foreground.webp', foreground_sizes[density])
+
+    print('Raja HR assets generated; splash background', BRAND)
+
+
+if __name__ == '__main__':
+    main()

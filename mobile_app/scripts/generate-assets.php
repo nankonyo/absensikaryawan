@@ -52,31 +52,31 @@ gradient($icon, [29, 78, 216], [59, 130, 246]);
 $soft = imagecolorallocatealpha($icon, 255, 255, 255, 18);
 roundedRect($icon, 190, 190, 834, 834, 90, $soft);
 $white = imagecolorallocate($icon, 255, 255, 255);
-centerText($icon, $fontBold, 250, 'RST', $white, 590, 22);
-centerText($icon, $fontBold, 66, 'INTERNAL', $white, 690, 10);
+centerText($icon, $fontBold, 250, 'RAJA', $white, 590, 22);
+centerText($icon, $fontBold, 66, 'HR', $white, 690, 10);
 imagepng($icon, $dir . '/icon.png');
 
 // Adaptive icon foreground (transparent background, safe zone)
 $adaptive = imagecreatetruecolor(1024, 1024);
 imagesavealpha($adaptive, true);
 imagefill($adaptive, 0, 0, imagecolorallocatealpha($adaptive, 0, 0, 0, 127));
-centerText($adaptive, $fontBold, 210, 'RST', $white, 585, 18);
-centerText($adaptive, $fontBold, 58, 'INTERNAL', $white, 675, 8);
+centerText($adaptive, $fontBold, 210, 'RAJA', $white, 585, 18);
+centerText($adaptive, $fontBold, 58, 'HR', $white, 675, 8);
 imagepng($adaptive, $dir . '/adaptive-icon.png');
 
 // Splash logo (transparent)
 $splash = imagecreatetruecolor(1024, 1024);
 imagesavealpha($splash, true);
 imagefill($splash, 0, 0, imagecolorallocatealpha($splash, 0, 0, 0, 127));
-centerText($splash, $fontBold, 200, 'RST', $white, 540, 18);
-centerText($splash, $fontBold, 54, 'INTERNAL APP', $white, 630, 8);
-centerText($splash, $fontBold, 30, 'SISTEM ABSENSI KARYAWAN', $white, 700, 6);
+centerText($splash, $fontBold, 200, 'RAJA', $white, 540, 18);
+centerText($splash, $fontBold, 54, 'HR', $white, 630, 8);
+centerText($splash, $fontBold, 30, 'SISTEM MANAJEMEN SDM', $white, 700, 6);
 imagepng($splash, $dir . '/splash-icon.png');
 
 // Favicon
 $favicon = imagecreatetruecolor(128, 128);
 gradient($favicon, [29, 78, 216], [59, 130, 246]);
-centerText($favicon, $fontBold, 58, 'RST', $white, 88, 2);
+centerText($favicon, $fontBold, 58, 'RAJA', $white, 88, 2);
 imagepng($favicon, $dir . '/favicon.png');
 
 echo "assets generated\n";

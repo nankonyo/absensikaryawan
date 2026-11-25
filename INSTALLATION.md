@@ -1,6 +1,6 @@
-# Installation Guide - Sistem Absensi Karyawan
+# Installation Guide - Raja HR
 
-Panduan instalasi lengkap untuk Sistem Absensi Karyawan Modern.
+Panduan instalasi lengkap untuk Raja HR.
 
 ##  Prerequisites
 
@@ -55,11 +55,11 @@ Pastikan sistem Anda sudah memiliki:
 mysql -u root -p
 
 # Create database
-CREATE DATABASE absensikaryawan CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE raja_hr CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 # Create user (optional, untuk production)
 CREATE USER 'absensi_user'@'localhost' IDENTIFIED BY 'your_secure_password';
-GRANT ALL PRIVILEGES ON absensikaryawan.* TO 'absensi_user'@'localhost';
+GRANT ALL PRIVILEGES ON raja_hr.* TO 'absensi_user'@'localhost';
 FLUSH PRIVILEGES;
 
 # Exit
@@ -70,7 +70,7 @@ exit;
 
 ```bash
 # Navigate to project directory
-cd /Applications/MAMP/htdocs/absensikaryawan
+cd /Applications/MAMP/htdocs/raja-hr
 
 # Install PHP dependencies
 composer install
@@ -94,7 +94,7 @@ php artisan key:generate
 Edit `.env` file dengan editor favorit Anda:
 
 ```env
-APP_NAME="Sistem Absensi Karyawan"
+APP_NAME="Raja HR"
 APP_ENV=local
 APP_KEY=base64:... # Already generated
 APP_DEBUG=true
@@ -108,7 +108,7 @@ APP_FALLBACK_LOCALE=en
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306                    # 8889 for MAMP, 3306 for XAMPP/Laragon
-DB_DATABASE=absensikaryawan
+DB_DATABASE=raja_hr
 DB_USERNAME=root
 DB_PASSWORD=                    # Your MySQL password (empty for MAMP/XAMPP default)
 
@@ -199,8 +199,8 @@ php artisan serve
 ```
 
 Atau akses via MAMP/XAMPP:
-- MAMP: `http://localhost:8888/absensikaryawan/public`
-- XAMPP: `http://localhost/absensikaryawan/public`
+- MAMP: `http://localhost:8888/raja-hr/public`
+- XAMPP: `http://localhost/raja-hr/public`
 
 ##  Default Login Credentials
 
@@ -424,10 +424,10 @@ php artisan optimize
 
 ```bash
 # Backup database
-mysqldump -u root -p absensikaryawan > backup_$(date +%Y%m%d).sql
+mysqldump -u root -p raja_hr > backup_$(date +%Y%m%d).sql
 
 # Restore database
-mysql -u root -p absensikaryawan < backup_20251121.sql
+mysql -u root -p raja_hr < backup_20251121.sql
 ```
 
 ##  Deployment to Production
@@ -510,4 +510,4 @@ Jika mengalami masalah saat instalasi:
 - [ ] Office location updated
 - [ ] System settings configured
 
-Selamat! Sistem Absensi Karyawan sudah siap digunakan!
+Selamat! Raja HR sudah siap digunakan!

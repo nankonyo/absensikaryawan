@@ -1,4 +1,4 @@
-package com.rst.internalapp
+package id.co.rajasakti.hr
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

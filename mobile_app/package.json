@@ -1,6 +1,6 @@
 {
-  "name": "rst-internal-mobile",
-  "version": "1.0.6",
+  "name": "raja-hr-mobile",
+  "version": "1.0.7",
   "main": "expo/AppEntry.js",
   "private": true,
   "scripts": {

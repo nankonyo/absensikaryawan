@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "RST Internal App",
-    "slug": "rst-internal-mobile",
-    "version": "1.0.6",
+    "name": "Raja HR",
+    "slug": "raja-hr",
+    "version": "1.0.7",
     "orientation": "portrait",
-    "scheme": "rstinternal",
+    "scheme": "rajahr",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -14,6 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "id.co.rajasakti.hr",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Lokasi digunakan untuk validasi presensi kantor.",
         "NSCameraUsageDescription": "Kamera digunakan untuk foto presensi."
@@ -32,8 +33,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#D34B52"
       },
-      "package": "com.rst.internalapp",
-      "versionCode": 7
+      "package": "id.co.rajasakti.hr",
+      "versionCode": 8
     },
     "plugins": [
       "expo-secure-store",

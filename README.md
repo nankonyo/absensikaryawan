@@ -1,4 +1,4 @@
-# Sistem Absensi Karyawan Modern
+# Raja HR
 
 Sistem absensi karyawan modern dengan fitur lengkap menggunakan Laravel 12, dilengkapi dengan validasi GPS dan Face Recognition.
 
@@ -62,7 +62,7 @@ Lihat [INSTALLATION.md](INSTALLATION.md) untuk panduan instalasi lengkap.
 
 ```bash
 # Clone atau copy project
-cd /Applications/MAMP/htdocs/absensikaryawan
+cd /Applications/MAMP/htdocs/raja-hr
 
 # Install dependencies
 composer install
@@ -76,7 +76,7 @@ php artisan key:generate
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=absensikaryawan
+DB_DATABASE=raja_hr
 DB_USERNAME=root
 DB_PASSWORD=your_password
 
@@ -190,7 +190,7 @@ Setiap unit memiliki 1 supervisor dan 5 staff. Total **68 akun**.
 ## Struktur Project
 
 ```
-absensikaryawan/
+raja-hr/
 ├── app/
 │   ├── Http/
 │   │   ├── Controllers/
@@ -324,13 +324,13 @@ Edit di Admin Dashboard → Settings → Office Location:
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=absensikaryawan
+DB_DATABASE=raja_hr
 DB_USERNAME=root
 DB_PASSWORD=your_password
 
 # Create database
 mysql -u root -p
-CREATE DATABASE absensikaryawan;
+CREATE DATABASE raja_hr;
 exit;
 
 # Run migrations again

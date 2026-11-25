@@ -1,4 +1,4 @@
-package com.rst.internalapp
+package id.co.rajasakti.hr
 
 import android.app.Application
 import android.content.res.Configuration

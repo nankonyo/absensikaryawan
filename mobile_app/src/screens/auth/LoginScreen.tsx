@@ -38,7 +38,7 @@ export const LoginScreen = () => {
         <View style={styles.logo}>
           <Ionicons name="business" size={34} color="#fff" />
         </View>
-        <Text style={styles.title}>RST Internal App</Text>
+        <Text style={styles.title}>Raja HR</Text>
         <Text style={styles.subtitle}>Presensi, cuti, project & aktivitas internal</Text>
       </View>
 
@@ -70,7 +70,7 @@ export const LoginScreen = () => {
 
       <Text style={styles.footer}>© {new Date().getFullYear()} Raja Sakti Telematika</Text>
       <Text style={styles.version}>
-        v{Constants.expoConfig?.version ?? '1.0.6'} · hr.rajasakti.co.id
+        v{Constants.expoConfig?.version ?? '1.0.7'} · hr.rajasakti.co.id
       </Text>
     </LinearGradient>
   );

@@ -1,6 +1,6 @@
-# RST Internal Mobile App (React Native / Expo)
+# Raja HR Mobile App (React Native / Expo)
 
-Aplikasi mobile pendamping **RstInternalApp** (Laravel). Layout mengikuti versi web
+Aplikasi mobile pendamping **Raja HR** (Laravel). Layout mengikuti versi web
 (warna biru, kartu, badge status) tetapi navigasi utama memakai **bottom tabs**
 yang dikondisikan berdasarkan role pengguna.
 
@@ -8,7 +8,7 @@ yang dikondisikan berdasarkan role pengguna.
 
 - Node.js 18+ dan npm
 - Expo CLI (`npx expo`)
-- Server Laravel `RstInternalApp` berjalan dan bisa diakses dari perangkat
+- Server Laravel `Raja HR` berjalan dan bisa diakses dari perangkat
 - Akun user terdaftar (password normal atau spy password internal)
 
 ## 2. Setup

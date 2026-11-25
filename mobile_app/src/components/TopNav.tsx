@@ -7,7 +7,7 @@ import { colors, spacing } from '../theme';
 
 export const TopNav = () => {
   const { user } = useAuth();
-  const [appName, setAppName] = useState('RST Internal App');
+  const [appName, setAppName] = useState('Raja HR');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
