@@ -6,9 +6,10 @@ import { colors, radius, spacing } from '../theme';
 type Props = TextInputProps & {
   label?: string;
   error?: string | null;
+  inputRef?: React.Ref<React.ComponentRef<typeof TextInput>>;
 };
 
-export const Field = ({ label, error, style, secureTextEntry, ...props }: Props) => {
+export const Field = ({ label, error, style, secureTextEntry, inputRef, ...props }: Props) => {
   const [visible, setVisible] = useState(false);
   const isPassword = Boolean(secureTextEntry);
 
@@ -17,6 +18,7 @@ export const Field = ({ label, error, style, secureTextEntry, ...props }: Props)
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <View style={styles.inputWrap}>
         <TextInput
+          ref={inputRef}
           placeholderTextColor={colors.subtle}
           style={[styles.input, isPassword && styles.inputSecure, error ? styles.inputError : null, style]}
           secureTextEntry={isPassword && !visible}

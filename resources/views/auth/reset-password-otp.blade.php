@@ -35,12 +35,29 @@
         </div>
 
         <div class="flex items-center justify-between mt-4 gap-3">
-            <a href="{{ route('password.request') }}" class="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline">
-                {{ __('ui.resend_otp') }}
-            </a>
             <x-primary-button>
                 {{ __('ui.reset_password_action') }}
             </x-primary-button>
         </div>
     </form>
+
+    <form method="POST" action="{{ route('password.otp.resend') }}" class="mt-3 text-center" data-no-progress>
+        @csrf
+        <input type="hidden" name="email" value="{{ old('email', $email) }}">
+        <button type="submit" class="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline">
+            {{ __('ui.resend_otp') }}
+        </button>
+    </form>
+
+    @if (session('status'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var otp = document.getElementById('otp');
+                if (otp) {
+                    otp.value = '';
+                    otp.focus();
+                }
+            });
+        </script>
+    @endif
 </x-guest-layout>

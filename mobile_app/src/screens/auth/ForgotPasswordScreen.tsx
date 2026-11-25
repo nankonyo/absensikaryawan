@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../components/ui';
@@ -22,6 +22,11 @@ export const ForgotPasswordScreen = ({ onBack }: Props) => {
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const otpRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+
+  const focusOtp = () => {
+    setTimeout(() => otpRef.current?.focus(), 120);
+  };
 
   const sendOtp = async () => {
     if (!email.trim()) {
@@ -33,7 +38,9 @@ export const ForgotPasswordScreen = ({ onBack }: Props) => {
     try {
       const response = await authApi.forgotPassword(email.trim());
       setMessage(response.data.message);
+      setOtp('');
       setStep('otp');
+      focusOtp();
     } catch (error) {
       Alert.alert('Gagal', apiMessage(error, 'Gagal mengirim kode OTP.'));
     } finally {
@@ -134,6 +141,8 @@ export const ForgotPasswordScreen = ({ onBack }: Props) => {
               keyboardType="number-pad"
               maxLength={6}
               autoCapitalize="none"
+              autoFocus
+              inputRef={otpRef}
               style={styles.otpInput}
             />
 

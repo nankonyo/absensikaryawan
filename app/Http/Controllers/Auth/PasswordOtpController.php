@@ -22,6 +22,24 @@ class PasswordOtpController extends Controller
         return view('auth.reset-password-otp', ['email' => $email]);
     }
 
+    public function resend(Request $request, PasswordOtpService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $otp = $service->issue($data['email']);
+
+        if ($otp === null) {
+            return back()->withErrors(['email' => __('ui.email_not_registered')]);
+        }
+
+        $request->session()->put('password_reset_email', $data['email']);
+
+        return redirect()->route('password.otp')
+            ->with('status', __('ui.otp_sent'));
+    }
+
     public function store(Request $request, PasswordOtpService $service): RedirectResponse
     {
         $data = $request->validate([

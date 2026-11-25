@@ -35,6 +35,9 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password/otp', [PasswordOtpController::class, 'store'])
         ->name('password.otp.store');
 
+    Route::post('reset-password/otp/resend', [PasswordOtpController::class, 'resend'])
+        ->name('password.otp.resend');
+
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
