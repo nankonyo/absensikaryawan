@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -8,6 +8,7 @@ import { Button } from '../../components/ui';
 import { Field } from '../../components/Field';
 import { apiMessage } from '../../api/client';
 import { colors, radius, spacing } from '../../theme';
+import { ForgotPasswordScreen } from './ForgotPasswordScreen';
 
 export const LoginScreen = () => {
   const { login } = useAuth();
@@ -15,6 +16,11 @@ export const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [forgot, setForgot] = useState(false);
+
+  if (forgot) {
+    return <ForgotPasswordScreen onBack={() => setForgot(false)} />;
+  }
 
   const submit = async () => {
     if (!email || !password) {
@@ -63,6 +69,9 @@ export const LoginScreen = () => {
             placeholder="Password"
             secureTextEntry
           />
+          <TouchableOpacity style={styles.forgot} onPress={() => setForgot(true)}>
+            <Text style={styles.forgotText}>Lupa password?</Text>
+          </TouchableOpacity>
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button label={loading ? 'Memproses...' : 'Masuk'} onPress={submit} disabled={loading} />
         </View>
@@ -97,5 +106,7 @@ const styles = StyleSheet.create({
   cardSubtitle: { fontSize: 13, color: colors.muted, marginBottom: spacing.md },
   form: { gap: spacing.md },
   error: { color: colors.danger, fontSize: 12 },
+  forgot: { alignSelf: 'flex-end', paddingVertical: 2 },
+  forgotText: { fontSize: 12, fontWeight: '700', color: colors.primary },
   footer: { color: 'rgba(255,255,255,0.7)', textAlign: 'center', fontSize: 11 },
 });

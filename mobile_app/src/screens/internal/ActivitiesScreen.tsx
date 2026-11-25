@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/Screen';
 import { Badge, Button, Card, EmptyState } from '../../components/ui';
 import { Field } from '../../components/Field';
+import { useAuth } from '../../context/AuthContext';
+import { can } from '../../utils/permissions';
 import { activityApi } from '../../api/endpoints';
 import { apiMessage } from '../../api/client';
 import type { ActivityLog, Project } from '../../types';
@@ -13,6 +15,8 @@ const statuses = ['backlog', 'todo', 'in_progress', 'in_review', 'done'];
 const priorities = ['low', 'medium', 'high', 'urgent'];
 
 export const ActivitiesScreen = () => {
+  const { user } = useAuth();
+  const canCreate = can(user, 'internalapp.activity.activities', 'create');
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [scope, setScope] = useState<'mine' | 'team'>('mine');
@@ -68,9 +72,11 @@ export const ActivitiesScreen = () => {
           <Text style={styles.title}>Aktivitas</Text>
           <Text style={styles.muted}>Log aktivitas project.</Text>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={() => setOpen(true)}>
-          <Ionicons name="add" size={20} color="#fff" />
-        </TouchableOpacity>
+        {canCreate ? (
+          <TouchableOpacity style={styles.addButton} onPress={() => setOpen(true)}>
+            <Ionicons name="add" size={20} color="#fff" />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       <View style={styles.tabs}>

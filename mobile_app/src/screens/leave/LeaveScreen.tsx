@@ -4,12 +4,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/Screen';
 import { Badge, Button, Card, EmptyState, SectionTitle } from '../../components/ui';
 import { Field } from '../../components/Field';
+import { useAuth } from '../../context/AuthContext';
+import { can } from '../../utils/permissions';
 import { leaveApi } from '../../api/endpoints';
 import { apiMessage } from '../../api/client';
 import type { Leave, LeaveType } from '../../types';
 import { colors, radius, spacing, statusColor } from '../../theme';
 
 export const LeaveScreen = () => {
+  const { user } = useAuth();
+  const canCreate = can(user, 'internalapp.leave.requests', 'create');
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [types, setTypes] = useState<LeaveType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,9 +73,11 @@ export const LeaveScreen = () => {
           <Text style={styles.title}>Cuti & Izin</Text>
           <Text style={styles.muted}>Ajukan dan pantau status pengajuan.</Text>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={() => setOpen(true)}>
-          <Ionicons name="add" size={20} color="#fff" />
-        </TouchableOpacity>
+        {canCreate ? (
+          <TouchableOpacity style={styles.addButton} onPress={() => setOpen(true)}>
+            <Ionicons name="add" size={20} color="#fff" />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {loading ? <Text style={styles.muted}>Memuat...</Text> : null}

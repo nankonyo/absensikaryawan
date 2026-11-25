@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/Screen';
 import { Card } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
+import { can, canAny } from '../../utils/permissions';
 import { colors, radius, spacing } from '../../theme';
 
 const menus = [
@@ -18,6 +19,21 @@ const menus = [
 export const InternalHomeScreen = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+
+  const visibleMenus = menus.filter((menu) => {
+    if (menu.key === 'Projects') return can(user, 'internalapp.project.project');
+    if (menu.key === 'Kanban') return can(user, 'internalapp.project.kanban');
+    if (menu.key === 'Gantt') return can(user, 'internalapp.project.gantt');
+    if (menu.key === 'Activities') return can(user, 'internalapp.activity.activities');
+    if (menu.key === 'Contents') {
+      return canAny(user, [
+        'internalapp.content.video-tutorials',
+        'internalapp.content.dokumentasi',
+        'internalapp.content.pengumuman',
+      ]);
+    }
+    return true;
+  });
 
   return (
     <Screen>
@@ -36,7 +52,7 @@ export const InternalHomeScreen = () => {
         <Ionicons name="apps" size={28} color={colors.primary} />
       </Card>
 
-      {menus.map((menu) => (
+      {visibleMenus.map((menu) => (
         <TouchableOpacity key={menu.key} style={styles.menu} onPress={() => navigation.navigate(menu.key)}>
           <View style={[styles.icon, { backgroundColor: `${menu.color}1a` }]}>
             <Ionicons name={menu.icon as any} size={22} color={menu.color} />

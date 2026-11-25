@@ -23,6 +23,7 @@ export type User = {
   can_verify_leaves: boolean;
   can_view_all_team_attendance: boolean;
   can_verify_all_attendance: boolean;
+  permissions?: Record<string, Record<string, boolean>>;
 };
 
 export type Attendance = {

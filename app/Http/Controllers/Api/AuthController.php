@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ApiToken;
 use App\Models\User;
+use App\Services\PasswordOtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -37,6 +39,63 @@ class AuthController extends Controller
         return response()->json([
             'token' => $token,
             'user' => $this->userPayload($user),
+        ]);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        try {
+            $otp = app(PasswordOtpService::class)->issue($data['email']);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Gagal mengirim kode OTP. Silakan coba lagi.',
+            ], 500);
+        }
+
+        if ($otp === null) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Email tidak terdaftar.',
+            ], 422);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Kode OTP sudah dikirim ke email Anda. Kode berlaku 10 menit.',
+        ]);
+    }
+
+    public function resetPasswordOtp(Request $request)
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'otp' => ['required', 'digits:6'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $success = app(PasswordOtpService::class)->reset(
+            $data['email'],
+            $data['otp'],
+            $data['password']
+        );
+
+        if (! $success) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Kode OTP tidak valid atau sudah kedaluwarsa.',
+            ], 422);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Kata sandi berhasil direset. Silakan masuk kembali.',
         ]);
     }
 
@@ -83,6 +142,7 @@ class AuthController extends Controller
             'can_verify_leaves' => $user->canVerifyLeaves(),
             'can_view_all_team_attendance' => $user->canViewAllTeamAttendance(),
             'can_verify_all_attendance' => $user->canVerifyAllAttendance(),
+            'permissions' => $user->featurePermissions(),
         ];
     }
 }

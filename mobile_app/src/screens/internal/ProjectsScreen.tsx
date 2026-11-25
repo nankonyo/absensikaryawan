@@ -1,20 +1,35 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/Screen';
-import { Card, EmptyState } from '../../components/ui';
+import { Button, Card, EmptyState } from '../../components/ui';
 import { Field } from '../../components/Field';
+import { useAuth } from '../../context/AuthContext';
+import { can } from '../../utils/permissions';
 import { projectApi } from '../../api/endpoints';
 import { apiMessage } from '../../api/client';
 import type { Project } from '../../types';
 import { colors, radius, spacing } from '../../theme';
 
+const projectStatuses = ['planning', 'in_progress', 'on_hold', 'completed'];
+
 export const ProjectsScreen = () => {
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [description, setDescription] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [status, setStatus] = useState('planning');
+
+  const canCreate = can(user, 'internalapp.project.project', 'create');
 
   const load = useCallback(async (q?: string) => {
     try {
@@ -31,11 +46,50 @@ export const ProjectsScreen = () => {
     load();
   }, [load]);
 
+  const submit = async () => {
+    if (!name.trim()) {
+      Alert.alert('Form belum lengkap', 'Nama project wajib diisi.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await projectApi.create({
+        name: name.trim(),
+        code: code.trim() || undefined,
+        description: description.trim() || undefined,
+        start_date: startDate.trim() || undefined,
+        end_date: endDate.trim() || undefined,
+        status,
+      });
+      setOpen(false);
+      setName('');
+      setCode('');
+      setDescription('');
+      setStartDate('');
+      setEndDate('');
+      setStatus('planning');
+      await load();
+      Alert.alert('Berhasil', 'Project berhasil dibuat.');
+    } catch (err) {
+      Alert.alert('Gagal menyimpan', apiMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Screen back>
-      <View>
-        <Text style={styles.title}>Project</Text>
-        <Text style={styles.muted}>Daftar project dan progres terbaru.</Text>
+      <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Project</Text>
+          <Text style={styles.muted}>Daftar project dan progres terbaru.</Text>
+        </View>
+        {canCreate ? (
+          <TouchableOpacity style={styles.addButton} onPress={() => setOpen(true)}>
+            <Ionicons name="add" size={20} color="#fff" />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       <View style={styles.searchRow}>
@@ -80,11 +134,59 @@ export const ProjectsScreen = () => {
           <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
         </TouchableOpacity>
       ))}
+
+      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+        <View style={styles.backdrop}>
+          <View style={styles.modal}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.modalTitle}>Project Baru</Text>
+              <TouchableOpacity onPress={() => setOpen(false)}>
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <Field label="Nama project *" value={name} onChangeText={setName} placeholder="Contoh: Portal Internal" />
+            <Field label="Kode" value={code} onChangeText={setCode} placeholder="Opsional" />
+            <Field
+              label="Deskripsi"
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Deskripsi project"
+              multiline
+              style={{ minHeight: 70 }}
+            />
+            <View style={styles.dateRow}>
+              <View style={{ flex: 1 }}>
+                <Field label="Tanggal mulai" value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Field label="Tanggal selesai" value={endDate} onChangeText={setEndDate} placeholder="YYYY-MM-DD" />
+              </View>
+            </View>
+
+            <Text style={styles.label}>Status</Text>
+            <View style={styles.chips}>
+              {projectStatuses.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={[styles.chip, status === item && styles.chipActive]}
+                  onPress={() => setStatus(item)}
+                >
+                  <Text style={[styles.chipText, status === item && styles.chipTextActive]}>{item.replace(/_/g, ' ')}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Button label={saving ? 'Menyimpan...' : 'Simpan project'} onPress={submit} disabled={saving} />
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 };
 
 const styles = StyleSheet.create({
+  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   title: { fontSize: 22, fontWeight: '800', color: colors.text },
   muted: { fontSize: 12, color: colors.muted },
   searchRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
@@ -117,4 +219,15 @@ const styles = StyleSheet.create({
   code: { fontSize: 11, color: colors.subtle },
   progressTrack: { height: 6, backgroundColor: '#eef2f7', borderRadius: 999, marginVertical: 4, overflow: 'hidden' },
   progressFill: { height: 6, backgroundColor: colors.primary, borderRadius: 999 },
+  addButton: { width: 40, height: 40, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'flex-end' },
+  modal: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.xl, gap: spacing.sm, maxHeight: '92%' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: colors.text, flex: 1 },
+  label: { fontSize: 12, fontWeight: '700', color: colors.muted, marginTop: 4 },
+  dateRow: { flexDirection: 'row', gap: spacing.sm },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.full, paddingHorizontal: 12, paddingVertical: 6 },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 11, color: colors.muted },
+  chipTextActive: { color: '#fff', fontWeight: '700' },
 });

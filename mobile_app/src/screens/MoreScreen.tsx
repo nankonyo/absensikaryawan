@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../components/Screen';
 import { Card } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
+import { can, canAny } from '../utils/permissions';
 import { colors, radius, spacing } from '../theme';
 
 const adminGroups = [
@@ -68,6 +69,23 @@ export const MoreScreen = () => {
   const { user, logout } = useAuth();
   const isAdmin = Boolean(user?.is_admin);
 
+  const visibleStaffItems = staffItems.filter(([, key]) => {
+    if (key === 'Attendance') return can(user, 'internalapp.absensi.presensi');
+    if (key === 'Leave') return can(user, 'internalapp.leave.requests');
+    if (key === 'Holiday') return canAny(user, ['internalapp.absensi.holidays', 'internalapp.absensi.presensi']);
+    if (key === 'InternalTab') {
+      return canAny(user, [
+        'internalapp.project.project',
+        'internalapp.project.kanban',
+        'internalapp.activity.activities',
+        'internalapp.content.video-tutorials',
+        'internalapp.content.dokumentasi',
+        'internalapp.content.pengumuman',
+      ]);
+    }
+    return true;
+  });
+
   const openResource = (label: string, resource: string) => {
     if (resource === 'holidays') {
       navigation.navigate('Holiday');
@@ -111,7 +129,7 @@ export const MoreScreen = () => {
           ))
         : (
             <Card style={{ padding: 0, overflow: 'hidden' }}>
-              {staffItems.map(([label, tab], index) => (
+              {visibleStaffItems.map(([label, tab], index) => (
                 <TouchableOpacity
                   key={tab}
                   style={[styles.item, index > 0 && styles.itemBorder]}

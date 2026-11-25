@@ -10,6 +10,8 @@ class ActivityController extends Controller
 {
     public function index(Request $request)
     {
+        abort_unless($request->user()?->canFeature('internalapp.activity.activities'), 403, 'Akses tidak diizinkan.');
+
         $user = $request->user();
         $scope = $request->query('scope', 'mine');
 
@@ -52,6 +54,8 @@ class ActivityController extends Controller
 
     public function store(Request $request)
     {
+        abort_unless($request->user()?->canFeature('internalapp.activity.activities', 'create'), 403, 'Akses tidak diizinkan.');
+
         $data = $request->validate([
             'project_id' => ['required', 'integer', 'exists:internal_projects,id'],
             'title' => ['required', 'string', 'max:200'],

@@ -10,6 +10,345 @@ use Illuminate\Support\Facades\Schema;
 class Installation extends Model
 {
     /**
+     * Create the base application schema before module-specific tables.
+     */
+    protected static function baseSchema(): void
+    {
+        if (! Schema::hasTable('roles')) {
+            Schema::create('roles', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->unique();
+                $table->unsignedTinyInteger('level')->default(0);
+                $table->string('display_name')->nullable();
+                $table->text('description')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('departments')) {
+            Schema::create('departments', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->text('description')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('units')) {
+            Schema::create('units', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('department_id')->constrained()->cascadeOnDelete();
+                $table->string('name');
+                $table->text('description')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('positions')) {
+            Schema::create('positions', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->unsignedTinyInteger('level')->default(5);
+                $table->text('description')->nullable();
+                $table->foreignId('department_id')->nullable()->constrained()->nullOnDelete();
+                $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('branches')) {
+            Schema::create('branches', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('code')->nullable();
+                $table->text('address')->nullable();
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('users')) {
+            Schema::create('users', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('role_id')->nullable()->constrained('roles')->nullOnDelete();
+                $table->string('name');
+                $table->string('user_name', 100)->nullable();
+                $table->string('email')->unique();
+                $table->timestamp('email_verified_at')->nullable();
+                $table->string('password');
+                $table->string('phone')->nullable();
+                $table->string('employee_id')->unique()->nullable();
+                $table->string('position')->nullable();
+                $table->foreignId('supervisor_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->string('avatar')->nullable();
+                $table->string('birth_place')->nullable();
+                $table->date('birth_date')->nullable();
+                $table->string('gender', 20)->nullable();
+                $table->foreignId('department_id')->nullable()->constrained()->nullOnDelete();
+                $table->foreignId('unit_id')->nullable()->constrained('units')->nullOnDelete();
+                $table->foreignId('position_id')->nullable()->constrained('positions')->nullOnDelete();
+                $table->foreignId('branch_id')->nullable()->constrained('branches')->nullOnDelete();
+                $table->string('employment_status', 20)->default('permanent');
+                $table->boolean('is_active')->default(true);
+                $table->boolean('is_admin')->default(false);
+                $table->rememberToken();
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
+
+        if (! Schema::hasTable('password_reset_tokens')) {
+            Schema::create('password_reset_tokens', function (Blueprint $table) {
+                $table->string('email')->primary();
+                $table->string('token');
+                $table->timestamp('created_at')->nullable();
+            });
+        }
+
+        if (! Schema::hasTable('sessions')) {
+            Schema::create('sessions', function (Blueprint $table) {
+                $table->string('id')->primary();
+                $table->foreignId('user_id')->nullable()->index();
+                $table->string('ip_address', 45)->nullable();
+                $table->text('user_agent')->nullable();
+                $table->longText('payload');
+                $table->integer('last_activity')->index();
+            });
+        }
+
+        if (! Schema::hasTable('cache')) {
+            Schema::create('cache', function (Blueprint $table) {
+                $table->string('key')->primary();
+                $table->mediumText('value');
+                $table->integer('expiration');
+            });
+        }
+
+        if (! Schema::hasTable('cache_locks')) {
+            Schema::create('cache_locks', function (Blueprint $table) {
+                $table->string('key')->primary();
+                $table->string('owner');
+                $table->integer('expiration');
+            });
+        }
+
+        if (! Schema::hasTable('jobs')) {
+            Schema::create('jobs', function (Blueprint $table) {
+                $table->id();
+                $table->string('queue')->index();
+                $table->longText('payload');
+                $table->unsignedTinyInteger('attempts');
+                $table->unsignedInteger('reserved_at')->nullable();
+                $table->unsignedInteger('available_at');
+                $table->unsignedInteger('created_at');
+            });
+        }
+
+        if (! Schema::hasTable('job_batches')) {
+            Schema::create('job_batches', function (Blueprint $table) {
+                $table->string('id')->primary();
+                $table->string('name');
+                $table->integer('total_jobs');
+                $table->integer('pending_jobs');
+                $table->integer('failed_jobs');
+                $table->longText('failed_job_ids');
+                $table->mediumText('options')->nullable();
+                $table->integer('cancelled_at')->nullable();
+                $table->integer('created_at');
+                $table->integer('finished_at')->nullable();
+            });
+        }
+
+        if (! Schema::hasTable('failed_jobs')) {
+            Schema::create('failed_jobs', function (Blueprint $table) {
+                $table->id();
+                $table->string('uuid')->unique();
+                $table->text('connection');
+                $table->text('queue');
+                $table->longText('payload');
+                $table->longText('exception');
+                $table->timestamp('failed_at')->useCurrent();
+            });
+        }
+
+        if (! Schema::hasTable('settings')) {
+            Schema::create('settings', function (Blueprint $table) {
+                $table->id();
+                $table->string('key')->unique();
+                $table->text('value')->nullable();
+                $table->string('type')->default('string');
+                $table->text('description')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (Schema::hasTable('settings') && ! DB::table('settings')->where('key', 'timezone')->exists()) {
+            DB::table('settings')->insert([
+                'key' => 'timezone',
+                'value' => 'Asia/Jakarta',
+                'type' => 'string',
+                'description' => 'Application timezone',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        if (! Schema::hasTable('office_locations')) {
+            Schema::create('office_locations', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->decimal('latitude', 10, 8);
+                $table->decimal('longitude', 11, 8);
+                $table->integer('radius')->default(100);
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('attendance_reasons')) {
+            Schema::create('attendance_reasons', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->unique();
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+            });
+        }
+
+        if (Schema::hasTable('attendance_reasons') && DB::table('attendance_reasons')->count() === 0) {
+            $now = now();
+            foreach (['WFO', 'WFH', 'Tugas dalam kota', 'Tugas pelatihan', 'Tugas keluar kota'] as $name) {
+                DB::table('attendance_reasons')->insert([
+                    'name' => $name,
+                    'is_active' => true,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
+
+        if (! Schema::hasTable('attendances')) {
+            Schema::create('attendances', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->date('date');
+                $table->time('check_in')->nullable();
+                $table->decimal('check_in_latitude', 10, 8)->nullable();
+                $table->decimal('check_in_longitude', 11, 8)->nullable();
+                $table->string('check_in_photo')->nullable();
+                $table->decimal('check_in_face_score', 5, 2)->nullable();
+                $table->string('check_in_address')->nullable();
+                $table->time('check_out')->nullable();
+                $table->decimal('check_out_latitude', 10, 8)->nullable();
+                $table->decimal('check_out_longitude', 11, 8)->nullable();
+                $table->string('check_out_photo')->nullable();
+                $table->decimal('check_out_face_score', 5, 2)->nullable();
+                $table->string('check_out_address')->nullable();
+                $table->enum('status', ['valid', 'invalid', 'pending'])->default('pending');
+                $table->text('notes')->nullable();
+                $table->integer('work_duration')->nullable();
+                $table->integer('late_duration')->nullable();
+                $table->integer('early_leave_duration')->nullable();
+                $table->foreignId('attendance_reason_id')->nullable()->constrained('attendance_reasons')->nullOnDelete();
+                $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->timestamp('verified_at')->nullable();
+                $table->text('verification_notes')->nullable();
+                $table->timestamps();
+                $table->index(['user_id', 'date']);
+                $table->index('date');
+                $table->index('status');
+            });
+        }
+
+        if (! Schema::hasTable('leave_types')) {
+            Schema::create('leave_types', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('category', 20)->default('cuti');
+                $table->boolean('requires_attachment')->default(false);
+                $table->boolean('requires_reason')->default(true);
+                $table->boolean('deducts_quota')->default(false);
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('leaves')) {
+            Schema::create('leaves', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->date('start_date');
+                $table->date('end_date');
+                $table->integer('days');
+                $table->foreignId('leave_type_id')->nullable()->constrained('leave_types')->nullOnDelete();
+                $table->text('reason')->nullable();
+                $table->string('attachment')->nullable();
+                $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+                $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->timestamp('approved_at')->nullable();
+                $table->text('notes')->nullable();
+                $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->timestamp('verified_at')->nullable();
+                $table->timestamps();
+                $table->index(['user_id', 'start_date']);
+                $table->index('status');
+            });
+        }
+
+        if (! Schema::hasTable('user_attributes')) {
+            Schema::create('user_attributes', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->unique();
+                $table->string('label');
+                $table->string('type')->default('text');
+                $table->json('options')->nullable();
+                $table->boolean('is_active')->default(true);
+                $table->integer('sort_order')->default(0);
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('user_attribute_values')) {
+            Schema::create('user_attribute_values', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('user_attribute_id')->constrained()->cascadeOnDelete();
+                $table->text('value')->nullable();
+                $table->timestamps();
+                $table->unique(['user_id', 'user_attribute_id']);
+            });
+        }
+
+        if (! Schema::hasTable('user_contracts')) {
+            Schema::create('user_contracts', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
+                $table->date('start_date')->nullable();
+                $table->date('end_date')->nullable();
+                $table->string('document')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('audit_logs')) {
+            Schema::create('audit_logs', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+                $table->string('action');
+                $table->string('model')->nullable();
+                $table->unsignedBigInteger('model_id')->nullable();
+                $table->json('old_values')->nullable();
+                $table->json('new_values')->nullable();
+                $table->string('ip_address', 45)->nullable();
+                $table->text('user_agent')->nullable();
+                $table->timestamps();
+                $table->index(['user_id', 'created_at']);
+                $table->index('action');
+                $table->index(['model', 'model_id']);
+            });
+        }
+    }
+
+    /**
      * Create / update every table required by the InternalApp modules.
      *
      * The method is idempotent: it only creates tables and columns that are
@@ -17,6 +356,8 @@ class Installation extends Model
      */
     public static function executeSchemaDatabase(): void
     {
+        self::baseSchema();
+
         if (! Schema::hasTable('projects')) {
             Schema::create('projects', function (Blueprint $table) {
                 $table->bigIncrements('id');
@@ -332,6 +673,19 @@ class Installation extends Model
                 $table->boolean('is_active')->default(true);
                 $table->timestamps();
                 $table->index('date');
+            });
+        }
+
+        if (! Schema::hasTable('password_reset_otps')) {
+            Schema::create('password_reset_otps', function (Blueprint $table) {
+                $table->id();
+                $table->string('email')->index();
+                $table->string('otp_hash');
+                $table->unsignedTinyInteger('attempts')->default(0);
+                $table->timestamp('expires_at');
+                $table->timestamp('consumed_at')->nullable();
+                $table->timestamps();
+                $table->index(['email', 'consumed_at']);
             });
         }
 

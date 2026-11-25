@@ -3,6 +3,8 @@ import { ActivityIndicator, Alert, Linking, StyleSheet, Text, TouchableOpacity, 
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/Screen';
 import { Badge, Card, EmptyState } from '../../components/ui';
+import { useAuth } from '../../context/AuthContext';
+import { can } from '../../utils/permissions';
 import { contentApi } from '../../api/endpoints';
 import { API_URL, apiMessage } from '../../api/client';
 import type { ContentItem } from '../../types';
@@ -12,8 +14,17 @@ const WEB_BASE = API_URL.replace(/\/api\/mobile\/?$/, '');
 
 type TabKey = 'videos' | 'dokumentasi' | 'pengumuman';
 
+const allTabs: [TabKey, string, string][] = [
+  ['videos', 'Video', 'internalapp.content.video-tutorials'],
+  ['dokumentasi', 'Dokumentasi', 'internalapp.content.dokumentasi'],
+  ['pengumuman', 'Pengumuman', 'internalapp.content.pengumuman'],
+];
+
 export const ContentsScreen = () => {
-  const [tab, setTab] = useState<TabKey>('videos');
+  const { user } = useAuth();
+  const allowedTabs = allTabs.filter(([, , code]) => can(user, code));
+  const [tab, setTab] = useState<TabKey>(allowedTabs[0]?.[0] ?? 'videos');
+  const activeTab = allowedTabs.some(([key]) => key === tab) ? tab : allowedTabs[0]?.[0];
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,8 +41,8 @@ export const ContentsScreen = () => {
   }, []);
 
   useEffect(() => {
-    load(tab);
-  }, [load, tab]);
+    if (activeTab) load(activeTab);
+  }, [activeTab, load]);
 
   const open = (url?: string | null) => {
     if (!url) return;
@@ -49,19 +60,14 @@ export const ContentsScreen = () => {
       </View>
 
       <View style={styles.tabs}>
-        {(
-          [
-            ['videos', 'Video'],
-            ['dokumentasi', 'Dokumentasi'],
-            ['pengumuman', 'Pengumuman'],
-          ] as [TabKey, string][]
-        ).map(([key, label]) => (
-          <TouchableOpacity key={key} style={[styles.tab, tab === key && styles.tabActive]} onPress={() => setTab(key)}>
-            <Text style={[styles.tabText, tab === key && styles.tabTextActive]}>{label}</Text>
+        {allowedTabs.map(([key, label]) => (
+          <TouchableOpacity key={key} style={[styles.tab, activeTab === key && styles.tabActive]} onPress={() => setTab(key)}>
+            <Text style={[styles.tabText, activeTab === key && styles.tabTextActive]}>{label}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
+      {allowedTabs.length === 0 ? <EmptyState message="Anda tidak memiliki akses konten." /> : null}
       {loading ? <ActivityIndicator color={colors.primary} /> : null}
       {!loading && items.length === 0 ? <EmptyState message="Belum ada konten." /> : null}
 

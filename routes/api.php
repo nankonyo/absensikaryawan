@@ -52,6 +52,8 @@ if (app()->environment('local')) {
 }
 
 Route::post('mobile/login', [AuthController::class, 'login']);
+Route::post('mobile/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('mobile/reset-password-otp', [AuthController::class, 'resetPasswordOtp']);
 
 Route::middleware('api-token')->prefix('mobile')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
@@ -91,6 +93,7 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
 
     Route::prefix('projects')->group(function () {
         Route::get('/', [ProjectController::class, 'index']);
+        Route::post('/', [ProjectController::class, 'store']);
         Route::get('kanban', [ProjectController::class, 'kanban']);
         Route::get('gantt', [ProjectController::class, 'gantt']);
         Route::get('{id}', [ProjectController::class, 'show']);

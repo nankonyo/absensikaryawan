@@ -17,6 +17,10 @@ export const authApi = {
     api.post<{ token: string; user: User }>('/login', { email, password, device_name: 'mobile' }),
   me: () => api.get<{ user: User }>('/me'),
   logout: () => api.post('/logout'),
+  forgotPassword: (email: string) =>
+    api.post<{ status: boolean; message: string }>('/forgot-password', { email }),
+  resetPasswordOtp: (payload: { email: string; otp: string; password: string; password_confirmation: string }) =>
+    api.post<{ status: boolean; message: string }>('/reset-password-otp', payload),
 };
 
 export const dashboardApi = {
@@ -94,6 +98,14 @@ export const teamApi = {
 export const projectApi = {
   index: (params?: { q?: string; page?: number }) =>
     api.get<{ data: Project[]; current_page: number; last_page: number }>('/projects', { params }),
+  create: (payload: {
+    name: string;
+    code?: string;
+    description?: string;
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+  }) => api.post<{ status: boolean; message: string; id: number }>('/projects', payload),
   show: (id: number) => api.get<{ project: Project; tasks: Task[]; members: User[] }>(`/projects/${id}`),
   tasks: (id: number) => api.get<{ tasks: Task[] }>(`/projects/${id}/tasks`),
   kanban: (projectId?: number) =>

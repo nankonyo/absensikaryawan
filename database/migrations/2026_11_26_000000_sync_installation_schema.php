@@ -2,10 +2,12 @@
 
 use App\Models\System\Installation;
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * All application tables are managed centrally by Installation.php.
+     */
     public function up(): void
     {
         Installation::executeSchemaDatabase();
@@ -13,8 +15,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('role_permissions');
-        Schema::dropIfExists('email_logs');
-        Schema::dropIfExists('servers');
+        // Schema is intentionally managed by Installation::executeSchemaDatabase().
     }
 };

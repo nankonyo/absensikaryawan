@@ -40,6 +40,40 @@ class AppServiceProvider extends ServiceProvider
                 config(['app.timezone' => $timezone]);
                 date_default_timezone_set($timezone);
             }
+
+            $mailer = (string) \App\Models\Setting::get('mail_mailer', '');
+
+            if (in_array($mailer, ['smtp', 'log', 'sendmail'], true)) {
+                config(['mail.default' => $mailer]);
+            }
+
+            if ($mailer === 'smtp') {
+                $host = (string) \App\Models\Setting::get('mail_host', '');
+                $port = (int) \App\Models\Setting::get('mail_port', 0);
+                $username = \App\Models\Setting::get('mail_username');
+                $password = \App\Models\Setting::get('mail_password');
+                $encryption = strtolower((string) \App\Models\Setting::get('mail_encryption', ''));
+
+                config([
+                    'mail.mailers.smtp.host' => $host !== '' ? $host : config('mail.mailers.smtp.host'),
+                    'mail.mailers.smtp.port' => $port > 0 ? $port : config('mail.mailers.smtp.port'),
+                    'mail.mailers.smtp.username' => $username !== null && $username !== '' ? $username : config('mail.mailers.smtp.username'),
+                    'mail.mailers.smtp.password' => $password !== null && $password !== '' ? $password : config('mail.mailers.smtp.password'),
+                    'mail.mailers.smtp.encryption' => $encryption !== '' && $encryption !== 'none' ? $encryption : null,
+                    'mail.mailers.smtp.scheme' => $encryption === 'ssl' ? 'smtps' : null,
+                ]);
+            }
+
+            $fromAddress = (string) \App\Models\Setting::get('mail_from_address', '');
+            $fromName = (string) \App\Models\Setting::get('mail_from_name', '');
+
+            if ($fromAddress !== '') {
+                config(['mail.from.address' => $fromAddress]);
+            }
+
+            if ($fromName !== '') {
+                config(['mail.from.name' => $fromName]);
+            }
         } catch (\Throwable $e) {
             // Settings table may not exist yet (fresh install / migration).
         }

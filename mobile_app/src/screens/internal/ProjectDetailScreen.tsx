@@ -4,6 +4,8 @@ import { RouteProp, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../components/Screen';
 import { Badge, Card, EmptyState, SectionTitle } from '../../components/ui';
+import { useAuth } from '../../context/AuthContext';
+import { can } from '../../utils/permissions';
 import { projectApi } from '../../api/endpoints';
 import { apiMessage } from '../../api/client';
 import type { Project, Task, User } from '../../types';
@@ -12,7 +14,9 @@ import { colors, radius, spacing, statusColor } from '../../theme';
 
 export const ProjectDetailScreen = () => {
   const route = useRoute<RouteProp<InternalStackParamList, 'ProjectDetail'>>();
+  const { user } = useAuth();
   const projectId = route.params.id;
+  const canUpdateTask = can(user, 'internalapp.project.kanban', 'update');
 
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -108,7 +112,7 @@ export const ProjectDetailScreen = () => {
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${Math.min(100, task.progress)}%` }]} />
           </View>
-          {task.status !== 'done' ? (
+          {canUpdateTask && task.status !== 'done' ? (
             <TouchableOpacity style={styles.advance} onPress={() => advanceTask(task)}>
               <Ionicons name="arrow-forward-circle" size={16} color={colors.primary} />
               <Text style={styles.advanceText}>Pindah ke {nextStatus(task.status).replace(/_/g, ' ')}</Text>

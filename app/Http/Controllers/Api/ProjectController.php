@@ -10,6 +10,8 @@ class ProjectController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorizeFeature($request, 'internalapp.project.project');
+
         $search = trim((string) $request->query('q'));
 
         $projects = DB::table('internal_projects as p')
@@ -30,8 +32,66 @@ class ProjectController extends Controller
         return response()->json($projects);
     }
 
+    public function store(Request $request)
+    {
+        $this->authorizeFeature($request, 'internalapp.project.project', 'create');
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:200'],
+            'code' => ['nullable', 'string', 'max:50'],
+            'description' => ['nullable', 'string'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'status' => ['nullable', 'in:planning,in_progress,completed,overdue,on_hold'],
+            'color' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $user = $request->user();
+        $id = DB::table('internal_projects')->insertGetId([
+            'code' => $data['code'] ?? null,
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+            'owner_id' => $user->id,
+            'start_date' => $data['start_date'] ?? null,
+            'end_date' => $data['end_date'] ?? null,
+            'status' => $data['status'] ?? 'planning',
+            'progress' => 0,
+            'color' => $data['color'] ?? '#D34B52',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('internal_project_members')->insertOrIgnore([
+            'project_id' => $id,
+            'user_id' => $user->id,
+            'role' => 'owner',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('internal_activity_logs')->insert([
+            'user_id' => $user->id,
+            'project_id' => $id,
+            'task_id' => null,
+            'type' => 'project',
+            'action' => 'created',
+            'description' => 'Project dibuat: '.$data['name'],
+            'activity_date' => now()->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Project berhasil dibuat.',
+            'id' => $id,
+        ]);
+    }
+
     public function show(Request $request, int $id)
     {
+        $this->authorizeFeature($request, 'internalapp.project.project');
+
         $project = DB::table('internal_projects as p')
             ->leftJoin('users as u', 'u.id', '=', 'p.owner_id')
             ->where('p.id', $id)
@@ -63,6 +123,8 @@ class ProjectController extends Controller
 
     public function tasks(Request $request, int $id)
     {
+        $this->authorizeFeature($request, 'internalapp.project.project');
+
         $tasks = DB::table('internal_tasks as t')
             ->leftJoin('users as u', 'u.id', '=', 't.assignee_id')
             ->where('t.project_id', $id)
@@ -75,6 +137,8 @@ class ProjectController extends Controller
 
     public function kanban(Request $request)
     {
+        $this->authorizeFeature($request, 'internalapp.project.kanban');
+
         $projectId = $request->integer('project_id') ?: null;
 
         $tasks = DB::table('internal_tasks as t')
@@ -101,6 +165,8 @@ class ProjectController extends Controller
 
     public function gantt(Request $request)
     {
+        $this->authorizeFeature($request, 'internalapp.project.gantt');
+
         $projectId = $request->integer('project_id') ?: null;
 
         $tasks = DB::table('internal_tasks as t')
@@ -120,6 +186,8 @@ class ProjectController extends Controller
 
     public function updateTask(Request $request, int $id)
     {
+        $this->authorizeFeature($request, 'internalapp.project.kanban', 'update');
+
         $data = $request->validate([
             'status' => ['nullable', 'in:backlog,todo,in_progress,in_review,done'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
@@ -149,5 +217,10 @@ class ProjectController extends Controller
         ], fn ($value) => ! is_null($value)));
 
         return response()->json(['message' => 'Task diperbarui.', 'task' => DB::table('internal_tasks')->find($id)]);
+    }
+
+    private function authorizeFeature(Request $request, string $code, string $action = 'read'): void
+    {
+        abort_unless($request->user()?->canFeature($code, $action), 403, 'Akses tidak diizinkan.');
     }
 }

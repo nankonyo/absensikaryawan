@@ -7,6 +7,7 @@ import { Badge, Card, EmptyState, SectionTitle } from '../components/ui';
 import { dashboardApi } from '../api/endpoints';
 import { apiMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { can, canAny } from '../utils/permissions';
 import type { ContentItem, Project } from '../types';
 import { colors, radius, spacing, statusColor } from '../theme';
 
@@ -46,14 +47,28 @@ export const DashboardScreen = () => {
   };
 
   const quickMenu = [
-    { key: 'Attendance', label: 'Presensi', icon: 'finger-print', color: colors.primary },
-    { key: 'Leave', label: 'Cuti & Izin', icon: 'calendar', color: '#059669' },
-    { key: 'InternalTab', label: 'Internal App', icon: 'apps', color: '#7c3aed' },
+    ...(can(user, 'internalapp.absensi.presensi')
+      ? [{ key: 'Attendance', label: 'Presensi', icon: 'finger-print', color: colors.primary }]
+      : []),
+    ...(can(user, 'internalapp.leave.requests')
+      ? [{ key: 'Leave', label: 'Cuti & Izin', icon: 'calendar', color: '#059669' }]
+      : []),
+    ...(canAny(user, [
+      'internalapp.project.project',
+      'internalapp.project.kanban',
+      'internalapp.activity.activities',
+      'internalapp.content.video-tutorials',
+    ])
+      ? [{ key: 'InternalTab', label: 'Internal App', icon: 'apps', color: '#7c3aed' }]
+      : []),
     { key: 'Profile', label: 'Profil', icon: 'person', color: '#f59e0b' },
   ];
 
-  if (user?.is_atasan || user?.is_admin) {
+  if ((user?.is_atasan || user?.is_admin) && can(user, 'internalapp.hr.team-attendance')) {
     quickMenu.push({ key: 'Team', label: 'Tim Saya', icon: 'people', color: '#0ea5e9' });
+  }
+
+  if ((user?.is_atasan || user?.is_admin) && canAny(user, ['internalapp.leave.approval', 'internalapp.absensi.approval'])) {
     quickMenu.push({ key: 'Approval', label: 'Approval', icon: 'checkmark-done', color: '#dc2626' });
   }
 

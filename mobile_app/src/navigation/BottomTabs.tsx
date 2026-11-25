@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
+import { can, canAny } from '../utils/permissions';
 import type { TabsParamList } from './types';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { AttendanceScreen } from '../screens/attendance/AttendanceScreen';
@@ -28,6 +29,21 @@ export const BottomTabs = () => {
   const isAdmin = Boolean(user?.is_admin);
   const isAtasan = Boolean(user?.is_atasan) && !isAdmin;
   const isStaff = !isAdmin && !isAtasan;
+  const canAttendance = can(user, 'internalapp.absensi.presensi');
+  const canLeave = can(user, 'internalapp.leave.requests');
+  const canTeam = (isAtasan || isAdmin) && can(user, 'internalapp.hr.team-attendance');
+  const canApproval =
+    (isAtasan || isAdmin) &&
+    canAny(user, ['internalapp.leave.approval', 'internalapp.absensi.approval']);
+  const canInternal = canAny(user, [
+    'internalapp.project.project',
+    'internalapp.project.kanban',
+    'internalapp.project.gantt',
+    'internalapp.activity.activities',
+    'internalapp.content.video-tutorials',
+    'internalapp.content.dokumentasi',
+    'internalapp.content.pengumuman',
+  ]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -48,25 +64,29 @@ export const BottomTabs = () => {
       }}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Beranda', tabBarIcon: icon('home') }} />
-      <Tab.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Presensi', tabBarIcon: icon('finger-print') }} />
+      {canAttendance ? (
+        <Tab.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Presensi', tabBarIcon: icon('finger-print') }} />
+      ) : null}
 
-      {(isAtasan || isAdmin) && (
+      {canTeam ? (
         <Tab.Screen name="Team" component={TeamScreen} options={{ title: 'Tim', tabBarIcon: icon('people') }} />
-      )}
+      ) : null}
 
-      {(isAtasan || isAdmin) && (
+      {canApproval ? (
         <Tab.Screen name="Approval" component={ApprovalScreen} options={{ title: 'Approval', tabBarIcon: icon('checkmark-done') }} />
-      )}
+      ) : null}
 
-      {isStaff && (
+      {isStaff && canLeave ? (
         <Tab.Screen name="Leave" component={LeaveScreen} options={{ title: 'Cuti', tabBarIcon: icon('calendar') }} />
-      )}
+      ) : null}
 
-      <Tab.Screen
-        name="InternalTab"
-        component={InternalNavigator}
-        options={{ title: 'Internal', tabBarIcon: icon('apps') }}
-      />
+      {canInternal ? (
+        <Tab.Screen
+          name="InternalTab"
+          component={InternalNavigator}
+          options={{ title: 'Internal', tabBarIcon: icon('apps') }}
+        />
+      ) : null}
 
       <Tab.Screen name="More" component={MoreNavigator} options={{ title: isAdmin ? 'Admin' : 'Lainnya', tabBarIcon: icon('settings') }} />
 

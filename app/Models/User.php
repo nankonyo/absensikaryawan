@@ -6,11 +6,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+
+    protected ?array $featurePermissionsCache = null;
 
     /**
      * The attributes that are mass assignable.
@@ -315,6 +319,50 @@ class User extends Authenticatable
     public function getRoleName(): string
     {
         return $this->role?->display_name ?? 'Unknown';
+    }
+
+    /**
+     * Feature permissions granted to this user's role.
+     *
+     * @return array<string, array<string, bool>>
+     */
+    public function featurePermissions(): array
+    {
+        if ($this->featurePermissionsCache !== null) {
+            return $this->featurePermissionsCache;
+        }
+
+        if (! $this->role_id || ! Schema::hasTable('permissions')) {
+            return $this->featurePermissionsCache = [];
+        }
+
+        $rows = DB::table('permissions')
+            ->where('first_big_integer_key', $this->role_id)
+            ->where('model', 'feature')
+            ->where('code', 'like', 'internalapp.%')
+            ->where(function ($query) {
+                $query->where('is_active', true)->orWhereNull('is_active');
+            })
+            ->get(['code', 'action']);
+
+        $permissions = [];
+        foreach ($rows as $row) {
+            $permissions[$row->code][$row->action] = true;
+        }
+
+        return $this->featurePermissionsCache = $permissions;
+    }
+
+    /**
+     * Check whether the user's role can perform an action on a feature.
+     */
+    public function canFeature(string $code, string $action = 'read'): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return ! empty($this->featurePermissions()[$code][$action]);
     }
 
     /**
