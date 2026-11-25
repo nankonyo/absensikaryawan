@@ -22,10 +22,13 @@ export const ForgotPasswordScreen = ({ onBack }: Props) => {
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [otpKey, setOtpKey] = useState(0);
   const otpRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
-  const focusOtp = () => {
-    setTimeout(() => otpRef.current?.focus(), 120);
+  const clearAndFocusOtp = () => {
+    setOtp('');
+    setOtpKey((key) => key + 1);
+    setTimeout(() => otpRef.current?.focus(), 180);
   };
 
   const sendOtp = async () => {
@@ -38,9 +41,8 @@ export const ForgotPasswordScreen = ({ onBack }: Props) => {
     try {
       const response = await authApi.forgotPassword(email.trim());
       setMessage(response.data.message);
-      setOtp('');
       setStep('otp');
-      focusOtp();
+      clearAndFocusOtp();
     } catch (error) {
       Alert.alert('Gagal', apiMessage(error, 'Gagal mengirim kode OTP.'));
     } finally {
@@ -134,6 +136,7 @@ export const ForgotPasswordScreen = ({ onBack }: Props) => {
             <Text style={styles.cardSubtitle}>{message || 'Kode OTP sudah dikirim ke email Anda. Kode berlaku 10 menit.'}</Text>
 
             <Field
+              key={`otp-${otpKey}`}
               label="Kode OTP"
               value={otp}
               onChangeText={setOtp}
