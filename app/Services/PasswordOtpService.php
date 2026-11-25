@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Models\Setting;
+use App\Models\System\Installation;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class PasswordOtpService
@@ -19,6 +21,10 @@ class PasswordOtpService
 
     public function issue(string $email): ?string
     {
+        if (! Schema::hasTable('password_reset_otps')) {
+            Installation::executeSchemaDatabase();
+        }
+
         $user = User::where('email', $email)->first();
 
         if (! $user) {
