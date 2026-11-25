@@ -3,6 +3,7 @@
 namespace App\Models\System;
 
 use App\Services\InternalAppService;
+use App\Support\RoleAccess;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,7 @@ class InternalAppInstallation extends Model
         self::activityReportSchema();
         self::contentSchema();
         self::seedGuides();
+        self::seedFeaturePermissions();
     }
 
     protected static function compatibilitySchema(): void
@@ -636,6 +638,76 @@ class InternalAppInstallation extends Model
                     'created_at' => now(), 'updated_at' => now(),
                 ]);
             }
+        }
+    }
+
+    /**
+     * Seed default feature permissions for roles that have never been
+     * configured. Runs once, tracked through internal_app_settings.
+     */
+    protected static function seedFeaturePermissions(): void
+    {
+        if (! Schema::hasTable('permissions') || ! Schema::hasTable('roles') || ! Schema::hasTable('internal_app_settings')) {
+            return;
+        }
+
+        if (InternalAppService::setting('feature_permissions_seeded_v1') === '1') {
+            return;
+        }
+
+        $columns = ['id', 'name'];
+        if (Schema::hasColumn('roles', 'slug')) {
+            $columns[] = 'slug';
+        }
+
+        $roles = DB::table('roles');
+        if (Schema::hasColumn('roles', 'deleted_at')) {
+            $roles->whereNull('deleted_at');
+        }
+
+        $rows = [];
+        $processed = 0;
+        foreach ($roles->get($columns) as $role) {
+            $processed++;
+
+            $hasPermissions = DB::table('permissions')
+                ->where('first_big_integer_key', $role->id)
+                ->where('model', 'feature')
+                ->exists();
+
+            if ($hasPermissions) {
+                continue;
+            }
+
+            $slug = (string) (($role->slug ?? null) ?: $role->name);
+            $defaults = RoleAccess::defaultsFor($slug);
+
+            foreach ($defaults as $code => $actions) {
+                foreach ($actions as $action => $enabled) {
+                    if (! $enabled) {
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'first_string_key' => $slug,
+                        'first_big_integer_key' => $role->id,
+                        'code' => $code,
+                        'action' => $action,
+                        'model' => 'feature',
+                        'is_active' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+        }
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            DB::table('permissions')->insert($chunk);
+        }
+
+        if ($processed > 0) {
+            InternalAppService::putSetting('feature_permissions_seeded_v1', '1');
         }
     }
 

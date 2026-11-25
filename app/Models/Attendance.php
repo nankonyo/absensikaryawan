@@ -81,19 +81,26 @@ class Attendance extends Model
     }
 
     /**
-     * Human readable tardiness: minutes below an hour, hours + minutes above.
+     * Tardiness rounded to whole hours: the remaining minutes round down
+     * below 30 minutes and round up at 30 minutes or more.
+     */
+    public function lateDurationHours(): int
+    {
+        $minutes = max(0, (int) $this->late_duration);
+        $hours = intdiv($minutes, 60);
+
+        if (($minutes % 60) >= 30) {
+            $hours++;
+        }
+
+        return $hours;
+    }
+
+    /**
+     * Human readable tardiness in whole hours.
      */
     public function lateDurationLabel(): string
     {
-        $minutes = (int) $this->late_duration;
-
-        if ($minutes <= 60) {
-            return __('ui.late_minutes', ['minutes' => $minutes]);
-        }
-
-        return __('ui.late_hours_minutes', [
-            'hours' => intdiv($minutes, 60),
-            'minutes' => $minutes % 60,
-        ]);
+        return __('ui.late_hours', ['hours' => $this->lateDurationHours()]);
     }
 }

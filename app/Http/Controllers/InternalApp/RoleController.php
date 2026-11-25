@@ -4,6 +4,7 @@ namespace App\Http\Controllers\InternalApp;
 
 use App\Models\System\InternalAppInstallation;
 use App\Support\Feature;
+use App\Support\RoleAccess;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -45,14 +46,28 @@ class RoleController extends Controller
             return response()->json(['status' => false, 'message' => 'Slug role sudah digunakan.'], 422);
         }
 
-        DB::table('roles')->insert([
-            'name' => $v['name'],
-            'slug' => $slug,
-            'is_active' => $request->boolean('is_active', true),
-            'is_super_admin' => false,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::beginTransaction();
+        try {
+            $roleId = DB::table('roles')->insertGetId([
+                'name' => $v['name'],
+                'slug' => $slug,
+                'is_active' => $request->boolean('is_active', true),
+                'is_super_admin' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->replacePermissions(
+                (object) ['id' => $roleId, 'slug' => $slug],
+                RoleAccess::defaultsFor($slug)
+            );
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json(['status' => false, 'message' => 'Gagal menambahkan role: '.$e->getMessage()], 500);
+        }
 
         return response()->json(['status' => true, 'message' => 'Role berhasil ditambahkan.']);
     }
@@ -82,6 +97,7 @@ class RoleController extends Controller
             'name' => 'required|string|max:100',
             'slug' => 'nullable|string|max:100|alpha_dash|unique:roles,slug,'.$id,
             'is_active' => 'nullable|boolean',
+            'permissions' => 'nullable|array',
         ]);
 
         $slug = $role->slug;
@@ -92,12 +108,25 @@ class RoleController extends Controller
             }
         }
 
-        DB::table('roles')->where('id', $id)->update([
-            'name' => $v['name'],
-            'slug' => $slug,
-            'is_active' => $request->boolean('is_active', true),
-            'updated_at' => now(),
-        ]);
+        DB::beginTransaction();
+        try {
+            DB::table('roles')->where('id', $id)->update([
+                'name' => $v['name'],
+                'slug' => $slug,
+                'is_active' => $request->boolean('is_active', true),
+                'updated_at' => now(),
+            ]);
+
+            if ($request->has('permissions')) {
+                $this->replacePermissions($role, (array) $request->input('permissions', []));
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json(['status' => false, 'message' => 'Gagal memperbarui role: '.$e->getMessage()], 500);
+        }
 
         return response()->json(['status' => true, 'message' => 'Role berhasil diperbarui.']);
     }
@@ -149,41 +178,9 @@ class RoleController extends Controller
 
         $request->validate(['permissions' => 'nullable|array']);
 
-        $allowed = [];
-        foreach (Feature::groups() as $group) {
-            foreach ($group['items'] as $item) {
-                $allowed[$item['id']] = $item['actions'];
-            }
-        }
-
         DB::beginTransaction();
         try {
-            DB::table('permissions')
-                ->where('first_big_integer_key', $id)
-                ->where('model', 'feature')
-                ->where('code', 'like', 'internalapp.%')
-                ->delete();
-
-            foreach ((array) $request->input('permissions', []) as $code => $actions) {
-                if (! isset($allowed[$code])) {
-                    continue;
-                }
-                foreach ((array) $actions as $action => $value) {
-                    if (! $value || ! in_array($action, $allowed[$code], true)) {
-                        continue;
-                    }
-                    DB::table('permissions')->insert([
-                        'first_string_key' => $role->slug ?? '',
-                        'first_big_integer_key' => $id,
-                        'code' => $code,
-                        'action' => $action,
-                        'model' => 'feature',
-                        'is_active' => true,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-            }
+            $this->replacePermissions($role, (array) $request->input('permissions', []));
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -192,6 +189,48 @@ class RoleController extends Controller
         }
 
         return response()->json(['status' => true, 'message' => 'Hak akses role disimpan.']);
+    }
+
+    /**
+     * Replace the feature permissions of a role with the submitted map.
+     */
+    protected function replacePermissions(object $role, array $permissions): void
+    {
+        $allowed = [];
+        foreach (Feature::groups() as $group) {
+            foreach ($group['items'] as $item) {
+                $allowed[$item['id']] = $item['actions'];
+            }
+        }
+
+        DB::table('permissions')
+            ->where('first_big_integer_key', $role->id)
+            ->where('model', 'feature')
+            ->where('code', 'like', 'internalapp.%')
+            ->delete();
+
+        foreach ($permissions as $code => $actions) {
+            if (! isset($allowed[$code])) {
+                continue;
+            }
+
+            foreach ((array) $actions as $action => $value) {
+                if (! $value || ! in_array($action, $allowed[$code], true)) {
+                    continue;
+                }
+
+                DB::table('permissions')->insert([
+                    'first_string_key' => $role->slug ?? '',
+                    'first_big_integer_key' => $role->id,
+                    'code' => $code,
+                    'action' => $action,
+                    'model' => 'feature',
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
     }
 
     protected function isAdmin(): bool

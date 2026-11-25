@@ -7,24 +7,31 @@ use Tests\TestCase;
 
 class LateDurationLabelTest extends TestCase
 {
-    public function test_short_tardiness_stays_in_minutes(): void
+    public function test_tardiness_below_thirty_minutes_rounds_down(): void
+    {
+        $attendance = new Attendance(['late_duration' => 29]);
+
+        $this->assertSame(0, $attendance->lateDurationHours());
+        $this->assertSame('Terlambat 0 jam', $attendance->lateDurationLabel());
+    }
+
+    public function test_tardiness_thirty_minutes_or_more_rounds_up(): void
     {
         $attendance = new Attendance(['late_duration' => 45]);
 
-        $this->assertSame('Terlambat 45 menit', $attendance->lateDurationLabel());
+        $this->assertSame(1, $attendance->lateDurationHours());
+        $this->assertSame('Terlambat 1 jam', $attendance->lateDurationLabel());
     }
 
-    public function test_one_hour_boundary_stays_in_minutes(): void
+    public function test_tardiness_is_rounded_per_started_threshold(): void
     {
-        $attendance = new Attendance(['late_duration' => 60]);
+        $overOneHour = new Attendance(['late_duration' => 89]);
+        $oneAndHalfHours = new Attendance(['late_duration' => 90]);
+        $longTardiness = new Attendance(['late_duration' => 152]);
 
-        $this->assertSame('Terlambat 60 menit', $attendance->lateDurationLabel());
-    }
-
-    public function test_long_tardiness_uses_hours_and_remaining_minutes(): void
-    {
-        $attendance = new Attendance(['late_duration' => 152]);
-
-        $this->assertSame('Terlambat 2 jam 32 menit', $attendance->lateDurationLabel());
+        $this->assertSame(1, $overOneHour->lateDurationHours());
+        $this->assertSame(2, $oneAndHalfHours->lateDurationHours());
+        $this->assertSame(3, $longTardiness->lateDurationHours());
+        $this->assertSame('Terlambat 3 jam', $longTardiness->lateDurationLabel());
     }
 }

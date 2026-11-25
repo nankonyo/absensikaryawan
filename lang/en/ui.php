@@ -228,6 +228,7 @@ return [
     'export_attendance_reports' => 'Export attendance reports',
     'late_minutes' => 'Late :minutes min',
     'late_hours_minutes' => 'Late :hours h :minutes m',
+    'late_hours' => 'Late :hours h',
     'late_count' => ':count late',
 
     // Users

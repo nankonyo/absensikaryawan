@@ -228,6 +228,7 @@ return [
     'export_attendance_reports' => 'Ekspor laporan kehadiran',
     'late_minutes' => 'Terlambat :minutes menit',
     'late_hours_minutes' => 'Terlambat :hours jam :minutes menit',
+    'late_hours' => 'Terlambat :hours jam',
     'late_count' => ':count terlambat',
 
     // Users

@@ -3,7 +3,7 @@
 @section('subtitle', 'Kelola role dan hak akses')
 
 @section('body')
-<div x-data="{ add: false, edit: false, perm: false }" @open-role-edit.window="edit = true" @open-role-perm.window="perm = true" @close-perm.window="perm = false" class="space-y-5">
+<div x-data="{ add: false, edit: false }" @open-role-edit.window="edit = true" class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <h2 class="font-bold text-slate-800">Daftar Role</h2>
@@ -30,7 +30,6 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">
-                            <button onclick="openPerm({{ $r->id }})" class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600">Hak Akses</button>
                             <button onclick="editRole({{ $r->id }})" class="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600">Edit</button>
                             <button onclick="deleteRole({{ $r->id }})" class="rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-600">Hapus</button>
                         </td>
@@ -57,54 +56,65 @@
         </div>
     </div>
 
-    {{-- EDIT ROLE --}}
+    {{-- EDIT ROLE + HAK AKSES --}}
     <div x-show="edit" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" @click.outside="edit = false">
-            <div class="flex items-center justify-between"><h3 class="font-bold">Edit Role</h3><button @click="edit=false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl" @click.outside="edit = false">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold">Edit Role</h3>
+                    <p class="text-xs text-slate-500">Ubah data role sekaligus hak akses fitur.</p>
+                </div>
+                <button @click="edit=false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
             <form id="editRoleForm" class="mt-4 space-y-3" onsubmit="return updateRole(event)">
                 <input type="hidden" name="id">
-                <input name="name" placeholder="Nama role" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" required>
-                <input name="slug" placeholder="Slug" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <input name="name" placeholder="Nama role" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" required>
+                    <input name="slug" placeholder="Slug" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                </div>
                 <label class="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" name="is_active" value="1" checked> Aktif</label>
-                <button class="w-full rounded-xl bg-blue-600 py-2.5 font-semibold text-white">Simpan Perubahan</button>
-            </form>
-        </div>
-    </div>
 
-    {{-- PERMISSIONS --}}
-    <div x-show="perm" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl" @click.outside="perm = false">
-            <div class="flex items-center justify-between">
-                <div><h3 class="font-bold">Hak Akses Role</h3><p id="permRoleName" class="text-xs text-slate-500"></p></div>
-                <button @click="perm=false" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <input type="hidden" id="permRoleId">
-            <div class="mt-4 space-y-4">
-                @foreach($features as $group)
-                <div>
-                    <p class="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">{{ $group['group'] }}</p>
-                    <div class="space-y-2">
-                        @foreach($group['items'] as $item)
-                        <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 p-3">
-                            <span class="text-sm font-medium text-slate-700">{{ $item['name'] }}</span>
-                            <div class="flex flex-wrap gap-3">
-                                @foreach($item['actions'] as $action)
-                                <label class="flex items-center gap-1.5 text-xs text-slate-600">
-                                    <input type="checkbox" class="perm-check" data-code="{{ $item['id'] }}" data-action="{{ $action }}">
-                                    <span class="capitalize">{{ $action }}</span>
-                                </label>
+                <div class="rounded-xl border border-slate-200">
+                    <div class="flex flex-wrap items-center justify-between gap-2 rounded-t-xl bg-slate-50 px-3 py-2">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-700">Hak Akses</p>
+                            <p id="editPermCount" class="text-[11px] text-slate-500">0 / 0 aksi dipilih</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="toggleAllPerms(true)" class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600">Pilih Semua</button>
+                            <button type="button" onclick="toggleAllPerms(false)" class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600">Kosongkan</button>
+                        </div>
+                    </div>
+                    <div class="max-h-72 space-y-4 overflow-y-auto p-3">
+                        @foreach($features as $group)
+                        <div>
+                            <p class="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">{{ $group['group'] }}</p>
+                            <div class="space-y-1.5">
+                                @foreach($group['items'] as $item)
+                                <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-2">
+                                    <span class="text-xs font-medium text-slate-700">{{ $item['name'] }}</span>
+                                    <div class="flex flex-wrap gap-2.5">
+                                        @foreach($item['actions'] as $action)
+                                        <label class="flex items-center gap-1.5 text-[11px] text-slate-600">
+                                            <input type="checkbox" class="perm-check rounded border-slate-300" data-code="{{ $item['id'] }}" data-action="{{ $action }}">
+                                            <span>{{ \App\Support\Feature::actionLabel($action) }}</span>
+                                        </label>
+                                        @endforeach
+                                    </div>
+                                </div>
                                 @endforeach
                             </div>
                         </div>
                         @endforeach
                     </div>
                 </div>
-                @endforeach
-            </div>
-            <div class="mt-5 flex justify-end gap-2">
-                <button @click="perm=false" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600">Batal</button>
-                <button onclick="savePerm()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Simpan Hak Akses</button>
-            </div>
+
+                <div class="flex justify-end gap-2 pt-1">
+                    <button type="button" @click="edit=false" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600">Batal</button>
+                    <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Simpan Perubahan</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -129,18 +139,52 @@ async function createRole(e) {
 }
 async function editRole(id) {
     try {
-        const r = await fetch('{{ url('internal/roles') }}/' + id + '/edit', { headers: { 'Accept': 'application/json' } });
-        const d = await r.json();
-        fillForm(document.getElementById('editRoleForm'), d);
+        const [roleResponse, permissionResponse] = await Promise.all([
+            fetch('{{ url('internal/roles') }}/' + id + '/edit', { headers: { 'Accept': 'application/json' } }),
+            fetch('{{ url('internal/roles') }}/' + id + '/permissions', { headers: { 'Accept': 'application/json' } }),
+        ]);
+        const data = await roleResponse.json();
+        const permissionData = await permissionResponse.json();
+        const map = permissionData.permissions || {};
+
+        fillForm(document.getElementById('editRoleForm'), data);
+        document.querySelectorAll('.perm-check').forEach(function (checkbox) {
+            checkbox.checked = !!(map[checkbox.dataset.code] && map[checkbox.dataset.code][checkbox.dataset.action]);
+        });
+        updatePermCount();
         window.dispatchEvent(new CustomEvent('open-role-edit'));
     } catch (e) { iaToast('Gagal memuat role.', false); }
 }
+function collectPermissions() {
+    const permissions = {};
+    document.querySelectorAll('.perm-check:checked').forEach(function (checkbox) {
+        const code = checkbox.dataset.code;
+        const action = checkbox.dataset.action;
+        permissions[code] = permissions[code] || {};
+        permissions[code][action] = true;
+    });
+    return permissions;
+}
+function toggleAllPerms(checked) {
+    document.querySelectorAll('.perm-check').forEach(function (checkbox) { checkbox.checked = checked; });
+    updatePermCount();
+}
+function updatePermCount() {
+    const total = document.querySelectorAll('.perm-check').length;
+    const checked = document.querySelectorAll('.perm-check:checked').length;
+    const label = document.getElementById('editPermCount');
+    if (label) label.textContent = checked + ' / ' + total + ' aksi dipilih';
+}
+document.addEventListener('change', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('perm-check')) updatePermCount();
+});
 async function updateRole(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const id = fd.get('id');
     const payload = Object.fromEntries(fd.entries());
     payload.is_active = fd.get('is_active') ? 1 : 0;
+    payload.permissions = collectPermissions();
     try { const d = await postJson('{{ url('internal/roles') }}/' + id + '/update', payload); iaToast(d.message); setTimeout(() => iaReload(), 500); }
     catch (err) { iaToast(err.message, false); }
     return false;
@@ -149,35 +193,6 @@ async function deleteRole(id) {
     if (!confirm('Hapus role ini?')) return;
     try { const d = await postJson('{{ url('internal/roles') }}/' + id + '/delete', {}); iaToast(d.message); setTimeout(() => iaReload(), 400); }
     catch (e) { iaToast(e.message, false); }
-}
-async function openPerm(id) {
-    document.getElementById('permRoleId').value = id;
-    document.querySelectorAll('.perm-check').forEach(function (c) { c.checked = false; });
-    try {
-        const r = await fetch('{{ url('internal/roles') }}/' + id + '/permissions', { headers: { 'Accept': 'application/json' } });
-        const d = await r.json();
-        const map = d.permissions || {};
-        document.querySelectorAll('.perm-check').forEach(function (c) {
-            const code = c.dataset.code, action = c.dataset.action;
-            c.checked = !!(map[code] && map[code][action]);
-        });
-        document.getElementById('permRoleName').textContent = 'Role ID: ' + id;
-        window.dispatchEvent(new CustomEvent('open-role-perm'));
-    } catch (e) { iaToast('Gagal memuat hak akses.', false); }
-}
-async function savePerm() {
-    const id = document.getElementById('permRoleId').value;
-    const permissions = {};
-    document.querySelectorAll('.perm-check:checked').forEach(function (c) {
-        const code = c.dataset.code, action = c.dataset.action;
-        permissions[code] = permissions[code] || {};
-        permissions[code][action] = true;
-    });
-    try {
-        const d = await postJson('{{ url('internal/roles') }}/' + id + '/permissions', { permissions });
-        iaToast(d.message);
-        window.dispatchEvent(new CustomEvent('close-perm'));
-    } catch (e) { iaToast(e.message, false); }
 }
 </script>
 @endsection
