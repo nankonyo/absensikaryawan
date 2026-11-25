@@ -132,6 +132,30 @@
                     <input type="number" x-model="form.face_recognition_threshold" class="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm shadow-sm">
                 </div>
             </div>
+
+            <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+                <div>
+                    <h2 class="font-bold text-slate-800">Hari Libur Mingguan</h2>
+                    <p class="text-xs text-slate-500">
+                        Centang hari yang dianggap libur setiap minggu. Hari libur tidak dihitung sebagai hari kerja dan
+                        ditampilkan sebagai "Libur Kerja" pada halaman absensi.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    @foreach ([0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'] as $value => $label)
+                        <label class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+                            <input type="checkbox" value="{{ $value }}" x-model.number="form.weekly_holidays"
+                                   class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            {{ $label }}
+                        </label>
+                    @endforeach
+                </div>
+
+                <p class="text-xs text-slate-500">
+                    Default: Sabtu dan Minggu. Perubahan berlaku otomatis pada perhitungan total hari kerja laporan absensi.
+                </p>
+            </div>
         </div>
 
         {{-- EMAIL --}}
@@ -310,6 +334,9 @@
                     work_end_time: initial.work_end_time,
                     late_tolerance: initial.late_tolerance,
                     annual_leave_quota: initial.annual_leave_quota,
+                    weekly_holidays: Array.isArray(initial.weekly_holidays)
+                        ? initial.weekly_holidays.map(Number)
+                        : [0, 6],
                     face_recognition_enabled: initial.face_recognition_enabled,
                     mobile_face_recognition_enabled: initial.mobile_face_recognition_enabled,
                     face_recognition_threshold: initial.face_recognition_threshold,
@@ -363,6 +390,10 @@
                     const formData = new FormData();
                     Object.entries(this.form).forEach(([key, value]) => {
                         if (key === 'test_email_to') return;
+                        if (Array.isArray(value)) {
+                            value.forEach((item) => formData.append(`${key}[]`, item));
+                            return;
+                        }
                         if (value === true) value = 1;
                         if (value === false) value = 0;
                         if (value !== null && value !== undefined) formData.append(key, value);

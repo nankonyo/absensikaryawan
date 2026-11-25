@@ -2,7 +2,7 @@
   "expo": {
     "name": "RST Internal App",
     "slug": "rst-internal-mobile",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "scheme": "rstinternal",
     "userInterfaceStyle": "light",
@@ -33,7 +33,7 @@
         "backgroundColor": "#D34B52"
       },
       "package": "com.rst.internalapp",
-      "versionCode": 6
+      "versionCode": 7
     },
     "plugins": [
       "expo-secure-store",

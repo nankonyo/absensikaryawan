@@ -25,8 +25,11 @@ class AttendanceReportService
             ->keyBy(fn (Holiday $holiday) => $holiday->date->toDateString());
 
         $workDays = [];
+        $weeklyHolidayDays = Holiday::weeklyDays();
+        $isWorkday = fn (Carbon $day) => ! in_array((int) $day->dayOfWeek, $weeklyHolidayDays, true);
+
         for ($day = $start->copy(); $day->lte($end); $day->addDay()) {
-            if ($day->isWeekday()) {
+            if ($isWorkday($day)) {
                 $workDays[] = $day->copy();
             }
         }
@@ -51,7 +54,7 @@ class AttendanceReportService
             ->get()
             ->groupBy('user_id');
 
-        $rows = $users->map(function (User $user) use ($start, $end, $workDays, $holidays, $attendances, $leaves) {
+        $rows = $users->map(function (User $user) use ($start, $end, $workDays, $holidays, $attendances, $leaves, $isWorkday) {
             $summary = [
                 'employee_id' => $user->employee_id ?: $user->id,
                 'name' => $user->name,
@@ -88,7 +91,7 @@ class AttendanceReportService
                 }
 
                 for ($day = $from->copy(); $day->lte($to); $day->addDay()) {
-                    if ($day->isWeekday()) {
+                    if ($isWorkday($day)) {
                         $userLeaves[$day->toDateString()] = $leave->leaveType?->category ?? 'izin';
                     }
                 }

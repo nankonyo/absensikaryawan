@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Karyawan;
 use App\Http\Controllers\Controller;
 use App\Services\AttendanceService;
 use App\Models\Attendance;
+use App\Models\Holiday;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -28,10 +29,15 @@ class AttendanceController extends Controller
         $canCheckIn = !$todayAttendance || !$todayAttendance->check_in;
         $canCheckOut = !$todayAttendance || !$todayAttendance->check_out;
 
+        $isDayOff = Holiday::isDayOff($today);
+        $dayOffName = $isDayOff ? Holiday::dayOffName($today) : '';
+
         return view('karyawan.attendance.index', compact(
             'todayAttendance',
             'canCheckIn',
-            'canCheckOut'
+            'canCheckOut',
+            'isDayOff',
+            'dayOffName'
         ));
     }
 

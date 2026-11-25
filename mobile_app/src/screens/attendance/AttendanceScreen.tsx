@@ -313,6 +313,22 @@ export const AttendanceScreen = () => {
 
       {tab === 'today' ? (
         <>
+          {data?.is_day_off ? (
+            <Card style={styles.dayOffCard}>
+              <View style={styles.dayOffRow}>
+                <Ionicons name="sunny-outline" size={22} color={colors.warning} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dayOffTitle}>
+                    Libur Kerja{data.day_off_name ? ` — ${data.day_off_name}` : ''}
+                  </Text>
+                  <Text style={styles.muted}>
+                    Hari ini bukan hari kerja. Jika Anda tetap bekerja, absensi tetap dapat dilakukan seperti biasa.
+                  </Text>
+                </View>
+              </View>
+            </Card>
+          ) : null}
+
           <Card style={styles.todayCard}>
             <View style={styles.rowBetween}>
               <View>
@@ -453,6 +469,9 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 13, fontWeight: '600', color: colors.muted },
   tabTextActive: { color: colors.primary },
   todayCard: { gap: spacing.md },
+  dayOffCard: { backgroundColor: colors.warningSoft, borderWidth: 1, borderColor: '#fcd34d' },
+  dayOffRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  dayOffTitle: { fontSize: 14, fontWeight: '800', color: colors.warning, marginBottom: 2 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
   bigStatus: { fontSize: 20, fontWeight: '800', color: colors.text, marginVertical: 2 },
   officeBox: {

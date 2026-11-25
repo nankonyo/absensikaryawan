@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Holiday;
 use App\Models\OfficeLocation;
 use App\Models\Setting;
 use App\Models\User;
@@ -32,6 +33,7 @@ class SettingController extends Controller
             'work_end_time' => (string) $value('work_end_time', '17:00'),
             'late_tolerance' => (int) $value('late_tolerance', 15),
             'annual_leave_quota' => (int) $value('annual_leave_quota', 12),
+            'weekly_holidays' => Holiday::weeklyDays(),
             'face_recognition_enabled' => filter_var($value('face_recognition_enabled', false), FILTER_VALIDATE_BOOLEAN),
             'mobile_face_recognition_enabled' => filter_var($value('mobile_face_recognition_enabled', false), FILTER_VALIDATE_BOOLEAN),
             'face_recognition_threshold' => (int) $value('face_recognition_threshold', 80),
@@ -71,6 +73,8 @@ class SettingController extends Controller
             'work_end_time' => ['required', 'date_format:H:i'],
             'late_tolerance' => ['required', 'integer', 'min:0', 'max:180'],
             'annual_leave_quota' => ['required', 'integer', 'min:1', 'max:365'],
+            'weekly_holidays' => ['nullable', 'array'],
+            'weekly_holidays.*' => ['integer', 'between:0,6'],
             'face_recognition_enabled' => ['boolean'],
             'mobile_face_recognition_enabled' => ['boolean'],
             'face_recognition_threshold' => ['required', 'integer', 'min:0', 'max:100'],
@@ -110,6 +114,15 @@ class SettingController extends Controller
         foreach (['late_tolerance', 'annual_leave_quota', 'face_recognition_threshold', 'mail_port', 'activity_reminder_days'] as $key) {
             Setting::set($key, $data[$key] ?? 0, 'integer');
         }
+
+        $weeklyHolidays = collect($data['weekly_holidays'] ?? [])
+            ->map(fn ($day) => (int) $day)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        Setting::set('weekly_holidays', $weeklyHolidays, 'json');
 
         Setting::set('face_recognition_enabled', $request->boolean('face_recognition_enabled'), 'boolean');
         Setting::set('mobile_face_recognition_enabled', $request->boolean('mobile_face_recognition_enabled'), 'boolean');

@@ -40,6 +40,8 @@ export const attendanceApi = {
   today: () =>
     api.get<{
       attendance: Attendance | null;
+      is_day_off: boolean;
+      day_off_name: string | null;
       office: { id: number; name: string; latitude: number; longitude: number; radius: number; address?: string } | null;
       work_start_time: string;
       work_end_time: string;

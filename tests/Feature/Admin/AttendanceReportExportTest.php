@@ -9,6 +9,7 @@ use App\Models\Holiday;
 use App\Models\Leave;
 use App\Models\LeaveType;
 use App\Models\Role;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\AttendanceReportService;
 use Carbon\Carbon;
@@ -91,6 +92,29 @@ class AttendanceReportExportTest extends TestCase
         $this->assertSame(1, $row['late_hours']);
         $this->assertSame(1, $row['leave']);
         $this->assertSame(2, $row['absent']);
+    }
+
+    public function test_weekly_holidays_are_excluded_from_normal_work_days(): void
+    {
+        Setting::set('weekly_holidays', [0, 6], 'json');
+
+        $report = app(AttendanceReportService::class)->build(
+            Carbon::parse('2026-11-02'),
+            Carbon::parse('2026-11-08')
+        );
+
+        // Senin-Jumat dihitung, Sabtu-Minggu libur.
+        $this->assertSame(5, $report['normal_work_days']);
+
+        Setting::set('weekly_holidays', [5], 'json');
+
+        $report = app(AttendanceReportService::class)->build(
+            Carbon::parse('2026-11-02'),
+            Carbon::parse('2026-11-08')
+        );
+
+        // Hanya Jumat yang libur, jadi 6 hari dihitung sebagai hari kerja.
+        $this->assertSame(6, $report['normal_work_days']);
     }
 
     public function test_every_late_day_counts_at_least_one_hour_and_rounds_up(): void

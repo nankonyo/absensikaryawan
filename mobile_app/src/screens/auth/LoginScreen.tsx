@@ -70,7 +70,7 @@ export const LoginScreen = () => {
 
       <Text style={styles.footer}>© {new Date().getFullYear()} Raja Sakti Telematika</Text>
       <Text style={styles.version}>
-        v{Constants.expoConfig?.version ?? '1.0.5'} · hr.rajasakti.co.id
+        v{Constants.expoConfig?.version ?? '1.0.6'} · hr.rajasakti.co.id
       </Text>
     </LinearGradient>
   );

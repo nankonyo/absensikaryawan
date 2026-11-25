@@ -37,6 +37,12 @@ class SettingSeeder extends Seeder
                 'type' => 'integer',
                 'description' => 'Late tolerance in minutes',
             ],
+            [
+                'key' => 'weekly_holidays',
+                'value' => json_encode([0, 6]),
+                'type' => 'json',
+                'description' => 'Weekly holiday days (0 = Sunday ... 6 = Saturday)',
+            ],
 
             // Leave
             [

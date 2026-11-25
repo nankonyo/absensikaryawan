@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\AttendanceReason;
+use App\Models\Holiday;
 use App\Models\OfficeLocation;
 use App\Models\Setting;
 use App\Services\AttendanceService;
@@ -22,9 +23,12 @@ class AttendanceController extends Controller
             ->first();
 
         $office = OfficeLocation::where('is_active', true)->first();
+        $isDayOff = Holiday::isDayOff(today());
 
         return response()->json([
             'attendance' => $attendance,
+            'is_day_off' => $isDayOff,
+            'day_off_name' => $isDayOff ? Holiday::dayOffName(today()) : null,
             'office' => $office ? [
                 'id' => $office->id,
                 'name' => $office->name,

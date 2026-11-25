@@ -44,6 +44,7 @@ class AttendanceReportExport implements FromArray, WithColumnWidths, WithEvents,
         'Libur Perusahaan = kebijakan perusahaan, tidak mengurangi cuti tahunan karyawan',
         'Absent = total tidak hadir tanpa keterangan',
         'Terlambat = total terlambat dalam satu bulan (setiap keterlambatan dihitung minimal 1 jam, dibulatkan ke atas per jam)',
+        'Hari Kerja = total hari periode dikurangi hari libur mingguan pada Pengaturan > Absensi',
     ];
 
     public function __construct(private array $report) {}
