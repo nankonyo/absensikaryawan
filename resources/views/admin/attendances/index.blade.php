@@ -56,6 +56,7 @@
         :headers="[
             __('ui.employee'),
             __('ui.date'),
+            __('ui.work_mode'),
             __('ui.check_in'),
             __('ui.check_out'),
             __('ui.status'),
@@ -70,6 +71,9 @@
                 </td>
                 <td data-label="{{ __('ui.date') }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {{ $attendance->date->format('d/m/Y') }}
+                </td>
+                <td data-label="{{ __('ui.work_mode') }}" class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
+                    {{ $attendance->modeLabel() }}
                 </td>
                 <td data-label="{{ __('ui.check_in') }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {{ $attendance->check_in ? \Carbon\Carbon::parse($attendance->check_in)->format('H:i') : '-' }}

@@ -469,9 +469,13 @@ class AdminResourceController extends Controller
     {
         return match ($resource) {
             'attendances' => DB::table('attendances as a')->leftJoin('users as u', 'u.id', '=', 'a.user_id')
-                ->select('a.*', 'u.name as user_name')->when($search !== '', fn ($q) => $q->where('u.name', 'like', "%{$search}%"))->orderByDesc('a.date'),
+                ->leftJoin('attendance_reasons as r', 'r.id', '=', 'a.attendance_reason_id')
+                ->select('a.*', 'u.name as user_name', 'r.name as attendance_reason_name')
+                ->when($search !== '', fn ($q) => $q->where('u.name', 'like', "%{$search}%"))->orderByDesc('a.date'),
             'attendance-verifications' => DB::table('attendances as a')->leftJoin('users as u', 'u.id', '=', 'a.user_id')
-                ->select('a.*', 'u.name as user_name')->where('a.status', 'pending')->when($search !== '', fn ($q) => $q->where('u.name', 'like', "%{$search}%"))->orderByDesc('a.date'),
+                ->leftJoin('attendance_reasons as r', 'r.id', '=', 'a.attendance_reason_id')
+                ->select('a.*', 'u.name as user_name', 'r.name as attendance_reason_name')
+                ->where('a.status', 'pending')->when($search !== '', fn ($q) => $q->where('u.name', 'like', "%{$search}%"))->orderByDesc('a.date'),
             'leaves' => DB::table('leaves as l')->leftJoin('users as u', 'u.id', '=', 'l.user_id')->leftJoin('leave_types as t', 't.id', '=', 'l.leave_type_id')
                 ->select('l.*', 'u.name as user_name', 't.name as leave_type_name')->when($search !== '', fn ($q) => $q->where('u.name', 'like', "%{$search}%"))->orderByDesc('l.start_date'),
             'audit-logs' => DB::table('audit_logs')->when($search !== '', fn ($q) => $q->where('action', 'like', "%{$search}%"))->orderByDesc('id'),

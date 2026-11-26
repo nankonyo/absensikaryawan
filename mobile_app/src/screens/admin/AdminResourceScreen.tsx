@@ -360,6 +360,11 @@ export const AdminResourceScreen = () => {
               ) : null}
             </View>
             {item.subtitle ? <Text style={styles.muted}>{item.subtitle}</Text> : null}
+            {['attendances', 'attendance-verifications'].includes(resource) ? (
+              <Text style={styles.muted}>
+                Mode Kehadiran: {formatLabel(String(item.raw?.attendance_reason_name ?? '')) || '-'}
+              </Text>
+            ) : null}
 
             {['attendances', 'attendance-verifications'].includes(resource) ? (
               <View style={styles.actions}>

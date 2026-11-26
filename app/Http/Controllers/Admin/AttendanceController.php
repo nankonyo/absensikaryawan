@@ -21,7 +21,7 @@ class AttendanceController extends Controller
             ? $request->integer('per_page')
             : 10;
 
-        $query = Attendance::with(['user.department', 'attendanceReason']);
+        $query = Attendance::with(['user.department', 'user.employeeSetting', 'attendanceReason']);
 
         // Search by employee name or employee ID
         if ($search !== '') {

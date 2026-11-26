@@ -65,6 +65,19 @@ class Attendance extends Model
         return $this->status === 'pending';
     }
 
+    public function modeLabel(): string
+    {
+        $reason = strtoupper(trim((string) ($this->attendanceReason?->name ?? '')));
+
+        if (in_array($reason, ['WFO', 'WFH', 'WFA'], true)) {
+            return $reason;
+        }
+
+        $mode = strtoupper((string) ($this->user?->work_mode ?? 'WFO'));
+
+        return in_array($mode, ['WFO', 'WFH', 'WFA'], true) ? $mode : 'WFO';
+    }
+
     public function statusLabel(): string
     {
         return __('ui.statuses.'.($this->status ?: 'pending'));
