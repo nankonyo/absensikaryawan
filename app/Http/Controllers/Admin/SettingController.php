@@ -30,7 +30,7 @@ class SettingController extends Controller
             $weeklyWorkModes = json_decode($weeklyWorkModes, true) ?: [];
         }
 
-        $exemptRoles = $value('outside_zone_exempt_roles', ['general_manager', 'sekretaris']);
+        $exemptRoles = $value('outside_zone_exempt_roles', ['General Manager', 'sekretaris']);
         if (is_string($exemptRoles)) {
             $exemptRoles = json_decode($exemptRoles, true) ?: [];
         }
@@ -83,6 +83,20 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
+        $exemptRoles = $request->input('outside_zone_exempt_roles', []);
+        if (is_string($exemptRoles)) {
+            $decoded = json_decode($exemptRoles, true);
+            $exemptRoles = is_array($decoded) ? $decoded : ($exemptRoles !== '' ? [$exemptRoles] : []);
+        }
+        $request->merge(['outside_zone_exempt_roles' => array_values((array) $exemptRoles)]);
+
+        $weeklyWorkModes = $request->input('weekly_work_modes', []);
+        if (is_string($weeklyWorkModes)) {
+            $decoded = json_decode($weeklyWorkModes, true);
+            $weeklyWorkModes = is_array($decoded) ? $decoded : [];
+        }
+        $request->merge(['weekly_work_modes' => (array) $weeklyWorkModes]);
+
         $data = $request->validate([
             'app_name' => ['required', 'string', 'max:255'],
             'company_name' => ['required', 'string', 'max:255'],

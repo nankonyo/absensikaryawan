@@ -172,7 +172,9 @@
                 <div class="flex flex-wrap gap-2">
                     @foreach ($roles as $role)
                         <label class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-                            <input type="checkbox" value="{{ $role->name }}" x-model="form.outside_zone_exempt_roles"
+                            <input type="checkbox" value="{{ $role->name }}"
+                                   :checked="form.outside_zone_exempt_roles.includes($el.value)"
+                                   @change="toggleExemptRole($el.value, $el.checked)"
                                    class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
                             {{ $role->display_name ?: $role->name }}
                         </label>
@@ -582,6 +584,21 @@
                             this.runningScheduler = false;
                             if (window.iaFinishProgress) window.iaFinishProgress();
                         });
+                },
+
+                toggleExemptRole(role, checked) {
+                    const roles = Array.isArray(this.form.outside_zone_exempt_roles)
+                        ? [...this.form.outside_zone_exempt_roles]
+                        : [];
+
+                    if (checked) {
+                        if (! roles.includes(role)) roles.push(role);
+                    } else {
+                        const index = roles.indexOf(role);
+                        if (index >= 0) roles.splice(index, 1);
+                    }
+
+                    this.form.outside_zone_exempt_roles = roles;
                 },
 
                 sendTestEmail() {

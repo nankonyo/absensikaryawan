@@ -327,15 +327,26 @@ class AttendanceService
 
     protected function isOutsideZoneExempt(User $user): bool
     {
-        $roles = Setting::get('outside_zone_exempt_roles', ['general_manager', 'sekretaris']);
+        $roles = Setting::get('outside_zone_exempt_roles', ['General Manager', 'sekretaris']);
 
         if (is_string($roles)) {
             $roles = json_decode($roles, true) ?: [];
         }
 
-        $roleName = $user->role?->name;
+        $normalize = fn (?string $value): string => str_replace([' ', '_'], '-', strtolower(trim((string) $value)));
+        $roleName = $normalize($user->role?->name);
 
-        return $roleName !== null && in_array($roleName, (array) $roles, true);
+        if ($roleName === '') {
+            return false;
+        }
+
+        foreach ((array) $roles as $role) {
+            if ($normalize((string) $role) === $roleName) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
