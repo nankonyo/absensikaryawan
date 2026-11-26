@@ -42,6 +42,7 @@ class AttendanceController extends Controller
         }
 
         $attendances = $query->orderBy('date', 'desc')->paginate($perPage)->withQueryString();
+        $reasons = AttendanceReason::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         return view('admin.attendances.index', [
             'attendances' => $attendances,
@@ -49,19 +50,33 @@ class AttendanceController extends Controller
             'month' => $month,
             'status' => $status,
             'perPage' => $perPage,
+            'reasons' => $reasons,
         ]);
     }
 
     public function updateReason(Request $request, Attendance $attendance)
     {
         $data = $request->validate([
-            'work_mode' => ['required', 'in:WFO,WFH,WFA'],
+            'attendance_reason_id' => ['nullable', 'integer', 'exists:attendance_reasons,id'],
+            'work_mode' => ['nullable', 'in:WFO,WFH,WFA'],
         ]);
 
-        $reason = AttendanceReason::firstOrCreate(
-            ['name' => $data['work_mode']],
-            ['is_active' => true]
-        );
+        $reason = null;
+
+        if (! empty($data['attendance_reason_id'])) {
+            $reason = AttendanceReason::whereKey($data['attendance_reason_id'])->where('is_active', true)->first();
+        }
+
+        if (! $reason && ! empty($data['work_mode'])) {
+            $reason = AttendanceReason::firstOrCreate(
+                ['name' => $data['work_mode']],
+                ['is_active' => true]
+            );
+        }
+
+        if (! $reason) {
+            return back()->withErrors(['attendance_reason_id' => 'Alasan kehadiran wajib dipilih.']);
+        }
 
         $oldValues = $attendance->toArray();
         $attendance->update([
@@ -69,7 +84,7 @@ class AttendanceController extends Controller
             'status' => 'valid',
             'verified_by' => auth()->id(),
             'verified_at' => now(),
-            'verification_notes' => 'Mode absensi diubah admin menjadi '.$data['work_mode'].'.',
+            'verification_notes' => 'Mode absensi diubah admin menjadi '.$reason->name.'.',
         ]);
 
         \App\Models\AuditLog::log(
@@ -80,7 +95,7 @@ class AttendanceController extends Controller
             $attendance->fresh()->toArray()
         );
 
-        return back()->with('success', 'Mode absensi berhasil diubah ke '.$data['work_mode'].'.');
+        return back()->with('success', 'Mode absensi berhasil diubah ke '.$reason->name.'.');
     }
 
     public function bulkStore(Request $request)

@@ -4,7 +4,7 @@
         <h2 class="text-2xl font-bold text-gray-900">{{ __('ui.attendance_records') }}</h2>
     </div>
 
-    <div x-data="{ editOpen: false, editId: null, editName: '', editMode: 'WFO', bulkOpen: false, bulkDate: '{{ now()->format('Y-m-d') }}', bulkMode: 'WFH' }">
+    <div x-data="{ editOpen: false, editId: null, editName: '', editReasonId: '', bulkOpen: false, bulkDate: '{{ now()->format('Y-m-d') }}', bulkMode: 'WFH' }">
     <div class="mb-3 flex justify-end">
         <button type="button" @click="bulkOpen = true"
                 class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
@@ -131,14 +131,8 @@
                             <a href="{{ route('admin.attendances.show', $attendance) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 {{ __('ui.view') }}
                             </a>
-                            @php
-                                $mode = strtoupper((string) ($attendance->attendanceReason?->name ?? 'WFO'));
-                                if (! in_array($mode, ['WFO', 'WFH', 'WFA'], true)) {
-                                    $mode = 'WFO';
-                                }
-                            @endphp
                             <button type="button"
-                                    @click="editOpen = true; editId = {{ $attendance->id }}; editName = @js($attendance->user?->name); editMode = @js($mode);"
+                                    @click="editOpen = true; editId = {{ $attendance->id }}; editName = @js($attendance->user?->name); editReasonId = @js((string) ($attendance->attendance_reason_id ?? ''));"
                                     class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
                                 Edit Absen
                             </button>
@@ -205,11 +199,12 @@
                 @csrf
                 @method('PUT')
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Mode Kehadiran</label>
-                    <select name="work_mode" x-model="editMode" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm">
-                        <option value="WFO">WFO — Work From Office</option>
-                        <option value="WFH">WFH — Work From Home</option>
-                        <option value="WFA">WFA — Work From Anywhere</option>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Mode / Alasan Kehadiran</label>
+                    <select name="attendance_reason_id" x-model="editReasonId" required class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm">
+                        <option value="">Pilih alasan kehadiran...</option>
+                        @foreach ($reasons as $reason)
+                            <option value="{{ $reason->id }}">{{ $reason->name }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <p class="text-xs text-gray-500">Status absensi akan menjadi valid setelah disimpan.</p>
