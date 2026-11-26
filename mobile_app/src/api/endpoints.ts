@@ -111,6 +111,29 @@ export const projectApi = {
     api.get<{ project: Project; tasks: Task[]; members: User[]; available_users: { id: number; name: string }[] }>(`/projects/${id}`),
   updateMembers: (id: number, members: number[]) =>
     api.post<{ status: boolean; message: string }>(`/projects/${id}/members`, { members }),
+  update: (id: number, payload: {
+    name?: string;
+    code?: string;
+    description?: string;
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+    color?: string;
+  }) => api.put<{ status: boolean; message: string }>(`/projects/${id}`, payload),
+  remove: (id: number) => api.delete<{ status: boolean; message: string }>(`/projects/${id}`),
+  createTask: (payload: {
+    project_id: number;
+    title: string;
+    description?: string;
+    status?: string;
+    priority?: string;
+    assignee_ids?: number[];
+    start_date?: string;
+    due_date?: string;
+    estimated_hours?: number;
+    is_milestone?: boolean;
+  }) => api.post<{ status: boolean; message: string; id: number }>('/projects/tasks', payload),
+  removeTask: (taskId: number) => api.delete<{ status: boolean; message: string }>(`/projects/tasks/${taskId}`),
   tasks: (id: number) => api.get<{ tasks: Task[] }>(`/projects/${id}/tasks`),
   kanban: (projectId?: number) =>
     api.get<{ statuses: string[]; board: Record<string, Task[]>; projects: Project[] }>('/projects/kanban', {
@@ -125,6 +148,12 @@ export const projectApi = {
     progress?: number;
     assignee_id?: number;
     assignee_ids?: number[];
+    title?: string;
+    description?: string;
+    priority?: string;
+    start_date?: string;
+    estimated_hours?: number;
+    is_milestone?: boolean;
     due_date?: string;
   }) => api.post(`/projects/tasks/${taskId}`, payload),
 };
@@ -184,6 +213,8 @@ export const adminApi = {
   remove: (resource: string, id: number) => api.delete(`/admin/resources/${resource}/${id}`),
   verifyAttendance: (id: number, status: 'valid' | 'invalid' | 'pending', notes?: string) =>
     api.post(`/admin/resources/attendances/${id}/verify`, { status, notes }),
+  updateAttendanceReason: (id: number, workMode: 'WFO' | 'WFH' | 'WFA') =>
+    api.post(`/admin/resources/attendances/${id}/reason`, { work_mode: workMode }),
 };
 
 export const appApi = {

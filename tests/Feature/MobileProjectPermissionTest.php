@@ -147,6 +147,63 @@ class MobileProjectPermissionTest extends TestCase
         ]);
     }
 
+    public function test_mobile_can_edit_delete_project_and_manage_tasks(): void
+    {
+        $user = $this->makeUserWithPermissions(['read', 'create', 'update', 'delete']);
+        $this->grant($user, 'internalapp.project.kanban', 'create');
+        $this->grant($user, 'internalapp.project.kanban', 'update');
+        $this->grant($user, 'internalapp.project.kanban', 'delete');
+        $token = ApiToken::issue($user, 'test');
+        $member = User::factory()->create();
+
+        $projectId = DB::table('internal_projects')->insertGetId([
+            'name' => 'Project Awal',
+            'owner_id' => $user->id,
+            'status' => 'planning',
+            'progress' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->putJson('/api/mobile/projects/'.$projectId, ['name' => 'Project Diubah', 'status' => 'in_progress'])
+            ->assertOk();
+
+        $this->assertDatabaseHas('internal_projects', ['id' => $projectId, 'name' => 'Project Diubah', 'status' => 'in_progress']);
+
+        $create = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/mobile/projects/tasks', [
+                'project_id' => $projectId,
+                'title' => 'Task Baru',
+                'status' => 'todo',
+                'priority' => 'high',
+                'assignee_ids' => [$member->id],
+            ])
+            ->assertOk();
+
+        $taskId = (int) $create->json('id');
+        $this->assertDatabaseHas('internal_tasks', ['id' => $taskId, 'title' => 'Task Baru', 'priority' => 'high']);
+        $this->assertDatabaseHas('internal_task_assignees', ['task_id' => $taskId, 'user_id' => $member->id]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/mobile/projects/tasks/'.$taskId, ['status' => 'done', 'assignee_ids' => [$user->id]])
+            ->assertOk();
+
+        $this->assertDatabaseHas('internal_tasks', ['id' => $taskId, 'status' => 'done']);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/mobile/projects/tasks/'.$taskId)
+            ->assertOk();
+
+        $this->assertDatabaseMissing('internal_tasks', ['id' => $taskId]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/mobile/projects/'.$projectId)
+            ->assertOk();
+
+        $this->assertDatabaseMissing('internal_projects', ['id' => $projectId]);
+    }
+
     public function test_staff_without_read_permission_cannot_open_project_list(): void
     {
         $user = $this->makeUserWithPermissions([]);

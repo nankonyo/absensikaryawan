@@ -72,6 +72,8 @@ Route::middleware(['auth', 'role:direksi,admin'])->prefix('admin')->name('admin.
     // Attendance management
     Route::get('/attendances', [App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('attendances.index');
     Route::get('/attendances/{attendance}', [App\Http\Controllers\Admin\AttendanceController::class, 'show'])->name('attendances.show');
+    Route::put('/attendances/{attendance}/reason', [App\Http\Controllers\Admin\AttendanceController::class, 'updateReason'])->name('attendances.update-reason');
+    Route::post('/attendances/bulk', [App\Http\Controllers\Admin\AttendanceController::class, 'bulkStore'])->name('attendances.bulk');
 
     // Team attendance: admin and direksi see every employee.
     Route::get('/team-attendance', [App\Http\Controllers\Atasan\TeamAttendanceController::class, 'index'])->name('team-attendance.index');

@@ -98,6 +98,9 @@ export type Task = {
   assignee_name?: string | null;
   assignee_ids?: number[];
   assignee_names?: string[];
+  estimated_hours?: number | string | null;
+  is_milestone?: boolean | number | null;
+  labels?: string | null;
   project_name?: string | null;
 };
 

@@ -6,6 +6,7 @@ import { Badge, Button, Card, EmptyState } from '../../components/ui';
 import { Field } from '../../components/Field';
 import { useAuth } from '../../context/AuthContext';
 import { can } from '../../utils/permissions';
+import { formatLabel } from '../../utils/labels';
 import { activityApi } from '../../api/endpoints';
 import { apiMessage } from '../../api/client';
 import type { ActivityLog, Project } from '../../types';
@@ -94,9 +95,9 @@ export const ActivitiesScreen = () => {
       {activities.map((activity) => (
         <Card key={activity.id} style={{ gap: 4 }}>
           <View style={styles.rowBetween}>
-            <Text style={styles.activityTitle}>{activity.description ?? activity.action}</Text>
+            <Text style={styles.activityTitle}>{activity.description ?? formatLabel(activity.action)}</Text>
             <Badge
-              label={activity.type.toUpperCase()}
+              label={formatLabel(activity.type)}
               bg={statusColor('pending').bg}
               color={statusColor('pending').text}
             />
@@ -105,7 +106,7 @@ export const ActivitiesScreen = () => {
             {activity.user_name ?? '-'} · {activity.project_name ?? '-'}
           </Text>
           <Text style={styles.muted}>
-            {activity.activity_date ?? ''} {activity.action}
+            {activity.activity_date ?? ''} {formatLabel(activity.action)}
           </Text>
         </Card>
       ))}
@@ -147,7 +148,7 @@ export const ActivitiesScreen = () => {
             <View style={styles.chips}>
               {statuses.map((item) => (
                 <TouchableOpacity key={item} style={[styles.chip, status === item && styles.chipActive]} onPress={() => setStatus(item)}>
-                  <Text style={[styles.chipText, status === item && styles.chipTextActive]}>{item.replace(/_/g, ' ')}</Text>
+                  <Text style={[styles.chipText, status === item && styles.chipTextActive]}>{formatLabel(item)}</Text>
                 </TouchableOpacity>
               ))}
             </View>

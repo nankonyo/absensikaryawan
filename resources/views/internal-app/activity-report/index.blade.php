@@ -97,10 +97,10 @@
                         <td class="px-3 py-2">{{ $r['activity'] }}</td>
                         <td class="px-3 py-2">{{ $r['phase'] }}</td>
                         <td class="px-3 py-2">{{ $r['assignee'] }}</td>
-                        <td class="px-3 py-2">{{ $r['priority'] }}</td>
+                        <td class="px-3 py-2">{{ ucwords(str_replace('_', ' ', $r['priority'])) }}</td>
                         <td class="px-3 py-2 whitespace-nowrap">{{ $r['due_date'] }}</td>
                         <td class="px-3 py-2 whitespace-nowrap">{{ $r['days_left'] }}</td>
-                        <td class="px-3 py-2">{{ $r['status'] }}</td>
+                        <td class="px-3 py-2">{{ ucwords(str_replace('_', ' ', $r['status'])) }}</td>
                         <td class="px-3 py-2 text-center">{{ $r['done'] ? '✓' : '0' }}</td>
                     </tr>
                     @empty

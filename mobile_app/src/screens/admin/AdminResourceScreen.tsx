@@ -19,6 +19,7 @@ import { Screen } from '../../components/Screen';
 import { Badge, Card, EmptyState } from '../../components/ui';
 import { Field } from '../../components/Field';
 import { adminApi, approvalApi } from '../../api/endpoints';
+import { formatLabel } from '../../utils/labels';
 import { apiMessage } from '../../api/client';
 import type { MoreStackParamList } from '../../navigation/types';
 import { colors, radius, spacing, statusColor } from '../../theme';
@@ -262,6 +263,25 @@ export const AdminResourceScreen = () => {
     }
   };
 
+  const editAttendanceMode = (item: AdminItem) => {
+    Alert.alert('Edit Mode Absensi', 'Pilih mode kehadiran untuk absensi ini.', [
+      { text: 'WFO', onPress: () => updateAttendanceMode(item, 'WFO') },
+      { text: 'WFH', onPress: () => updateAttendanceMode(item, 'WFH') },
+      { text: 'WFA', onPress: () => updateAttendanceMode(item, 'WFA') },
+      { text: 'Batal', style: 'cancel' },
+    ]);
+  };
+
+  const updateAttendanceMode = async (item: AdminItem, mode: 'WFO' | 'WFH' | 'WFA') => {
+    try {
+      await adminApi.updateAttendanceReason(item.id, mode);
+      await load(page, search);
+      Alert.alert('Berhasil', `Mode absensi diubah ke ${mode}.`);
+    } catch (error) {
+      Alert.alert('Gagal', apiMessage(error));
+    }
+  };
+
   const actLeave = async (item: AdminItem, action: 'approve' | 'reject') => {
     try {
       if (action === 'approve') await approvalApi.approve(item.id);
@@ -333,13 +353,21 @@ export const AdminResourceScreen = () => {
               <Text style={styles.itemTitle}>{item.title || '-'}</Text>
               {item.meta ? (
                 <Badge
-                  label={String(item.meta).toUpperCase()}
+                  label={formatLabel(String(item.meta))}
                   bg={statusColor(String(item.meta)).bg}
                   color={statusColor(String(item.meta)).text}
                 />
               ) : null}
             </View>
             {item.subtitle ? <Text style={styles.muted}>{item.subtitle}</Text> : null}
+
+            {['attendances', 'attendance-verifications'].includes(resource) ? (
+              <View style={styles.actions}>
+                <TouchableOpacity onPress={() => editAttendanceMode(item)}>
+                  <Text style={styles.edit}>Edit Mode Absensi</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
             {resource === 'attendance-verifications' && String(item.raw?.status ?? item.status ?? '') === 'pending' ? (
               <View style={styles.actions}>

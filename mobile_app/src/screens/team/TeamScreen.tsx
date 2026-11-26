@@ -3,6 +3,7 @@ import { Alert, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../components/Screen';
 import { Badge, Card, EmptyState } from '../../components/ui';
 import { teamApi } from '../../api/endpoints';
+import { formatLabel } from '../../utils/labels';
 import { apiMessage } from '../../api/client';
 import { colors, spacing, statusColor } from '../../theme';
 
@@ -55,7 +56,7 @@ export const TeamScreen = () => {
                 </Text>
               </View>
               <Badge
-                label={status.toUpperCase()}
+                label={formatLabel(status)}
                 bg={statusColor(attendance?.status ?? (attendance?.check_in ? 'valid' : 'pending')).bg}
                 color={statusColor(attendance?.status ?? (attendance?.check_in ? 'valid' : 'pending')).text}
               />

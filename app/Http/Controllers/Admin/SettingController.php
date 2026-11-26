@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Holiday;
 use App\Models\OfficeLocation;
+use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -23,6 +24,18 @@ class SettingController extends Controller
         $value = fn (string $key, $default = null) => $settings[$key]->value ?? $default;
 
         $managerId = $value('project_manager_id') ? (int) $value('project_manager_id') : null;
+
+        $weeklyWorkModes = $value('weekly_work_modes', []);
+        if (is_string($weeklyWorkModes)) {
+            $weeklyWorkModes = json_decode($weeklyWorkModes, true) ?: [];
+        }
+
+        $exemptRoles = $value('outside_zone_exempt_roles', ['general_manager', 'sekretaris']);
+        if (is_string($exemptRoles)) {
+            $exemptRoles = json_decode($exemptRoles, true) ?: [];
+        }
+
+        $roles = Role::query()->whereNull('deleted_at')->orderBy('name')->get(['name', 'display_name']);
 
         $initial = [
             'app_name' => (string) $value('app_name', config('app.name')),
@@ -55,6 +68,8 @@ class SettingController extends Controller
             'project_review_date' => (string) $value('project_review_date', ''),
             'play_store_url' => (string) $value('play_store_url', ''),
             'app_store_url' => (string) $value('app_store_url', ''),
+            'weekly_work_modes' => is_array($weeklyWorkModes) ? $weeklyWorkModes : [],
+            'outside_zone_exempt_roles' => array_values((array) $exemptRoles),
             'activity_default_status' => (string) $value('activity_default_status', 'planned'),
             'activity_reminder_days' => (int) $value('activity_reminder_days', 1),
             'activity_report_enabled' => filter_var($value('activity_report_enabled', false), FILTER_VALIDATE_BOOLEAN),
@@ -63,7 +78,7 @@ class SettingController extends Controller
             'activity_report_time' => (string) $value('activity_report_time', '18:00'),
         ];
 
-        return view('admin.settings.index', compact('settings', 'office', 'initial'));
+        return view('admin.settings.index', compact('settings', 'office', 'initial', 'roles'));
     }
 
     public function update(Request $request)
@@ -80,6 +95,10 @@ class SettingController extends Controller
             'annual_leave_quota' => ['required', 'integer', 'min:1', 'max:365'],
             'weekly_holidays' => ['nullable', 'array'],
             'weekly_holidays.*' => ['integer', 'between:0,6'],
+            'weekly_work_modes' => ['nullable', 'array'],
+            'weekly_work_modes.*' => ['nullable', 'in:WFO,WFH,WFA'],
+            'outside_zone_exempt_roles' => ['nullable', 'array'],
+            'outside_zone_exempt_roles.*' => ['string', 'max:100'],
             'face_recognition_enabled' => ['boolean'],
             'mobile_face_recognition_enabled' => ['boolean'],
             'face_recognition_threshold' => ['required', 'integer', 'min:0', 'max:100'],
@@ -136,6 +155,20 @@ class SettingController extends Controller
             ->all();
 
         Setting::set('weekly_holidays', $weeklyHolidays, 'json');
+
+        $weeklyWorkModes = collect($data['weekly_work_modes'] ?? [])
+            ->mapWithKeys(function ($mode, $day) {
+                $day = (int) $day;
+                $mode = strtoupper((string) $mode);
+
+                return $day >= 1 && $day <= 7 && in_array($mode, ['WFO', 'WFH', 'WFA'], true)
+                    ? [$day => $mode]
+                    : [];
+            })
+            ->all();
+
+        Setting::set('weekly_work_modes', $weeklyWorkModes, 'json');
+        Setting::set('outside_zone_exempt_roles', array_values((array) ($data['outside_zone_exempt_roles'] ?? [])), 'json');
 
         Setting::set('face_recognition_enabled', $request->boolean('face_recognition_enabled'), 'boolean');
         Setting::set('mobile_face_recognition_enabled', $request->boolean('mobile_face_recognition_enabled'), 'boolean');

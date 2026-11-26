@@ -135,6 +135,47 @@
 
             <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
                 <div>
+                    <h2 class="font-bold text-slate-800">Jadwal Mode Kerja Mingguan</h2>
+                    <p class="text-xs text-slate-500">
+                        Atur mode kerja default per hari. Contoh: Kamis dan Jumat WFH untuk kebijakan hybrid.
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    @foreach ([1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'] as $day => $label)
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-semibold text-slate-600">{{ $label }}</label>
+                            <select x-model="form.weekly_work_modes[{{ $day }}]" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                                <option value="WFO">WFO</option>
+                                <option value="WFH">WFH</option>
+                                <option value="WFA">WFA</option>
+                            </select>
+                        </div>
+                    @endforeach
+                </div>
+                <p class="text-xs text-slate-500">Mode ini dipakai otomatis saat karyawan absen pada hari tersebut.</p>
+            </div>
+
+            <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+                <div>
+                    <h2 class="font-bold text-slate-800">Bebas Persetujuan Luar Zona</h2>
+                    <p class="text-xs text-slate-500">
+                        Role yang dipilih tidak perlu menunggu persetujuan saat absen di luar zona kantor.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($roles as $role)
+                        <label class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+                            <input type="checkbox" value="{{ $role->name }}" x-model="form.outside_zone_exempt_roles"
+                                   class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            {{ $role->display_name ?: $role->name }}
+                        </label>
+                    @endforeach
+                </div>
+                <p class="text-xs text-slate-500">Contoh: General Manager dan Sekretaris perusahaan.</p>
+            </div>
+
+            <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+                <div>
                     <h2 class="font-bold text-slate-800">Hari Libur Mingguan</h2>
                     <p class="text-xs text-slate-500">
                         Centang hari yang dianggap libur setiap minggu. Hari libur tidak dihitung sebagai hari kerja dan
@@ -448,6 +489,10 @@
                     const formData = new FormData();
                     Object.entries(this.form).forEach(([key, value]) => {
                         if (key === 'test_email_to') return;
+                        if (key === 'weekly_work_modes' && value && typeof value === 'object') {
+                            Object.entries(value).forEach(([day, mode]) => formData.append(`weekly_work_modes[${day}]`, mode));
+                            return;
+                        }
                         if (Array.isArray(value)) {
                             value.forEach((item) => formData.append(`${key}[]`, item));
                             return;

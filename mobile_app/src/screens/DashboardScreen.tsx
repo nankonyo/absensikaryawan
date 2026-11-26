@@ -8,6 +8,7 @@ import { dashboardApi } from '../api/endpoints';
 import { apiMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { can, canAny } from '../utils/permissions';
+import { formatLabel } from '../utils/labels';
 import type { ContentItem, Project } from '../types';
 import { colors, radius, spacing, statusColor } from '../theme';
 
@@ -131,7 +132,7 @@ export const DashboardScreen = () => {
             </Text>
           </View>
           <Badge
-            label={attendance?.status ? attendance.status.toUpperCase() : 'BELUM'}
+            label={attendance?.status ? formatLabel(attendance.status) : 'Belum'}
             bg={statusColor(attendance?.status).bg}
             color={statusColor(attendance?.status).text}
           />
@@ -189,7 +190,7 @@ export const DashboardScreen = () => {
           >
             <View style={{ flex: 1 }}>
               <Text style={styles.projectName}>{project.name}</Text>
-              <Text style={styles.muted}>{project.status.replace(/_/g, ' ')}</Text>
+              <Text style={styles.muted}>{formatLabel(project.status)}</Text>
               <View style={styles.progressTrack}>
                 <View style={[styles.progressFill, { width: `${Math.min(100, project.progress)}%` }]} />
               </View>

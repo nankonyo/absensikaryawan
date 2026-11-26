@@ -417,6 +417,34 @@ class AdminResourceController extends Controller
         return $user && ($user->isAdmin() || $user->canManageUsers());
     }
 
+    public function updateAttendanceReason(Request $request, int $id)
+    {
+        abort_unless($this->canManage($request), 403);
+
+        $data = $request->validate([
+            'work_mode' => ['required', 'in:WFO,WFH,WFA'],
+        ]);
+
+        $attendance = Attendance::findOrFail($id);
+        $reason = AttendanceReason::firstOrCreate(
+            ['name' => $data['work_mode']],
+            ['is_active' => true]
+        );
+
+        $attendance->update([
+            'attendance_reason_id' => $reason->id,
+            'status' => 'valid',
+            'verified_by' => $request->user()->id,
+            'verified_at' => now(),
+            'verification_notes' => 'Mode absensi diubah admin menjadi '.$data['work_mode'].'.',
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Mode absensi diubah ke '.$data['work_mode'].'.',
+        ]);
+    }
+
     public function verifyAttendance(Request $request, int $id)
     {
         abort_unless($this->canManage($request), 403);

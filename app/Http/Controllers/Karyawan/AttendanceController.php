@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Karyawan;
 
 use App\Http\Controllers\Controller;
-use App\Services\AttendanceService;
 use App\Models\Attendance;
 use App\Models\Holiday;
-use Illuminate\Http\Request;
+use App\Services\AttendanceService;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
 {
@@ -26,18 +26,20 @@ class AttendanceController extends Controller
             ->whereDate('date', $today)
             ->first();
 
-        $canCheckIn = !$todayAttendance || !$todayAttendance->check_in;
-        $canCheckOut = !$todayAttendance || !$todayAttendance->check_out;
+        $canCheckIn = ! $todayAttendance || ! $todayAttendance->check_in;
+        $canCheckOut = ! $todayAttendance || ! $todayAttendance->check_out;
 
         $isDayOff = Holiday::isDayOff($today);
         $dayOffName = $isDayOff ? Holiday::dayOffName($today) : '';
+        $workMode = $this->attendanceService->workMode($user, $today);
 
         return view('karyawan.attendance.index', compact(
             'todayAttendance',
             'canCheckIn',
             'canCheckOut',
             'isDayOff',
-            'dayOffName'
+            'dayOffName',
+            'workMode'
         ));
     }
 

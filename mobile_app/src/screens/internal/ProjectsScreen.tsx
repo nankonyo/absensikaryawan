@@ -7,6 +7,7 @@ import { Button, Card, EmptyState } from '../../components/ui';
 import { Field } from '../../components/Field';
 import { useAuth } from '../../context/AuthContext';
 import { can } from '../../utils/permissions';
+import { formatLabel } from '../../utils/labels';
 import { projectApi } from '../../api/endpoints';
 import { apiMessage } from '../../api/client';
 import type { Project } from '../../types';
@@ -178,7 +179,7 @@ export const ProjectsScreen = () => {
                   onPress={() => setStatus(item)}
                 >
                   <Text style={[styles.chipText, status === item && styles.chipTextActive]}>
-                    {item === 'in_progress' ? 'In Progress' : item.replace(/_/g, ' ')}
+                    {formatLabel(item)}
                   </Text>
                 </TouchableOpacity>
               ))}

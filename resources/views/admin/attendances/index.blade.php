@@ -4,6 +4,14 @@
         <h2 class="text-2xl font-bold text-gray-900">{{ __('ui.attendance_records') }}</h2>
     </div>
 
+    <div x-data="{ editOpen: false, editId: null, editName: '', editMode: 'WFO', bulkOpen: false, bulkDate: '{{ now()->format('Y-m-d') }}', bulkMode: 'WFH' }">
+    <div class="mb-3 flex justify-end">
+        <button type="button" @click="bulkOpen = true"
+                class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            Absen / Edit Massal
+        </button>
+    </div>
     <form method="GET" action="{{ route('admin.attendances.index') }}" class="mb-4 flex flex-col sm:flex-row gap-2">
         <input
             type="search"
@@ -119,6 +127,17 @@
                             <a href="{{ route('admin.attendances.show', $attendance) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 {{ __('ui.view') }}
                             </a>
+                            @php
+                                $mode = strtoupper((string) ($attendance->attendanceReason?->name ?? 'WFO'));
+                                if (! in_array($mode, ['WFO', 'WFH', 'WFA'], true)) {
+                                    $mode = 'WFO';
+                                }
+                            @endphp
+                            <button type="button"
+                                    @click="editOpen = true; editId = {{ $attendance->id }}; editName = @js($attendance->user?->name); editMode = @js($mode);"
+                                    class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
+                                Edit Absen
+                            </button>
                         </div>
                     </div>
                 </td>
@@ -128,5 +147,73 @@
 
     <div class="mt-6">
         {{ $attendances->links() }}
+    </div>
+
+    <div x-show="bulkOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" @click.outside="bulkOpen = false">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Absen / Edit Massal</h3>
+                    <p class="text-xs text-gray-500">Buat atau ubah absensi seluruh karyawan pada tanggal tertentu.</p>
+                </div>
+                <button type="button" @click="bulkOpen = false" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form method="POST" action="{{ route('admin.attendances.bulk') }}" class="mt-4 space-y-3">
+                @csrf
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Tanggal</label>
+                    <input type="date" name="date" x-model="bulkDate" required class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Mode Kehadiran</label>
+                    <select name="work_mode" x-model="bulkMode" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm">
+                        <option value="WFO">WFO — Work From Office</option>
+                        <option value="WFH">WFH — Work From Home</option>
+                        <option value="WFA">WFA — Work From Anywhere</option>
+                    </select>
+                </div>
+                <p class="text-xs text-gray-500">
+                    Karyawan yang belum punya absensi pada tanggal tersebut akan dibuatkan absensi masuk dan status valid.
+                    Data yang sudah ada akan diubah mode kehadirannya.
+                </p>
+                <button type="submit" class="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
+                    Simpan Absen Massal
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div x-show="editOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" @click.outside="editOpen = false">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Edit Absen</h3>
+                    <p class="text-xs text-gray-500" x-text="editName"></p>
+                </div>
+                <button type="button" @click="editOpen = false" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form method="POST" :action="'{{ url('/admin/attendances') }}/' + editId + '/reason'" class="mt-4 space-y-3">
+                @csrf
+                @method('PUT')
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Mode Kehadiran</label>
+                    <select name="work_mode" x-model="editMode" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm">
+                        <option value="WFO">WFO — Work From Office</option>
+                        <option value="WFH">WFH — Work From Home</option>
+                        <option value="WFA">WFA — Work From Anywhere</option>
+                    </select>
+                </div>
+                <p class="text-xs text-gray-500">Status absensi akan menjadi valid setelah disimpan.</p>
+                <button type="submit" class="w-full rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+                    Simpan Mode Absensi
+                </button>
+            </form>
+        </div>
+    </div>
     </div>
 </x-app-layout>

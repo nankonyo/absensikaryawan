@@ -60,8 +60,8 @@
                         <td class="px-4 py-2 text-xs whitespace-nowrap">{{ $a->activity_date }}</td>
                         <td class="px-4 py-2 font-medium">{{ $a->nama }}</td>
                         <td class="px-4 py-2 text-xs">{{ $a->project_name ?: '-' }}</td>
-                        <td class="px-4 py-2 text-xs"><span class="rounded-full bg-slate-100 px-2 py-0.5">{{ $a->type }}</span></td>
-                        <td class="px-4 py-2 text-xs">{{ $a->action }}</td>
+                        <td class="px-4 py-2 text-xs"><span class="rounded-full bg-slate-100 px-2 py-0.5">{{ ucwords(str_replace('_', ' ', $a->type)) }}</span></td>
+                        <td class="px-4 py-2 text-xs">{{ ucwords(str_replace('_', ' ', $a->action)) }}</td>
                         <td class="px-4 py-2 text-xs text-slate-600">{{ $a->description }}</td>
                     </tr>
                     @empty

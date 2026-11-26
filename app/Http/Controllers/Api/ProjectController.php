@@ -91,6 +91,76 @@ class ProjectController extends Controller
         ]);
     }
 
+    public function update(Request $request, int $id)
+    {
+        $this->authorizeFeature($request, 'internalapp.project.project', 'update');
+
+        $project = DB::table('internal_projects')->find($id);
+        abort_unless($project, 404);
+
+        $data = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:200'],
+            'code' => ['nullable', 'string', 'max:50'],
+            'description' => ['nullable', 'string'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'status' => ['nullable', 'in:planning,in_progress,completed,overdue,on_hold'],
+            'color' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        DB::table('internal_projects')->where('id', $id)->update(array_filter([
+            'name' => $data['name'] ?? null,
+            'code' => $data['code'] ?? null,
+            'description' => $data['description'] ?? null,
+            'start_date' => $data['start_date'] ?? null,
+            'end_date' => $data['end_date'] ?? null,
+            'status' => $data['status'] ?? null,
+            'color' => $data['color'] ?? null,
+            'updated_at' => now(),
+        ], fn ($value) => ! is_null($value)));
+
+        \App\Services\InternalAppService::projectActivity((int) $id, 'updated', 'Project diperbarui via mobile');
+
+        return response()->json(['status' => true, 'message' => 'Project diperbarui.']);
+    }
+
+    public function destroy(Request $request, int $id)
+    {
+        $this->authorizeFeature($request, 'internalapp.project.project', 'delete');
+
+        $name = DB::table('internal_projects')->where('id', $id)->value('name');
+        abort_unless($name, 404);
+
+        DB::table('internal_projects')->where('id', $id)->delete();
+        \App\Services\InternalAppService::logActivity(null, null, 'project', 'deleted', 'Project dihapus via mobile: '.$name);
+
+        return response()->json(['status' => true, 'message' => 'Project dihapus.']);
+    }
+
+    public function storeTask(Request $request)
+    {
+        $this->authorizeFeature($request, 'internalapp.project.kanban', 'create');
+
+        $data = $this->validateTask($request, true);
+        $assigneeIds = array_values(array_unique(array_map('intval', (array) ($data['assignee_ids'] ?? []))));
+        unset($data['assignee_ids']);
+        $data['assignee_id'] = $assigneeIds[0] ?? null;
+        $data['status'] = $data['status'] ?? 'backlog';
+        $data['priority'] = $data['priority'] ?? 'medium';
+        $data['reporter_id'] = $request->user()->id;
+        $data['progress'] = 0;
+        $data['position'] = (int) DB::table('internal_tasks')->where('project_id', $data['project_id'])->max('position') + 1;
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+
+        $id = DB::table('internal_tasks')->insertGetId($data);
+        \App\Services\InternalAppService::syncTaskAssignees((int) $id, $assigneeIds);
+        \App\Services\InternalAppService::activity((int) $id, 'created', 'Task dibuat via mobile');
+        \App\Services\InternalAppService::refreshProjectProgress((int) $data['project_id']);
+
+        return response()->json(['status' => true, 'message' => 'Task berhasil dibuat.', 'id' => $id]);
+    }
+
     public function show(Request $request, int $id)
     {
         $this->authorizeFeature($request, 'internalapp.project.project');
@@ -239,17 +309,14 @@ class ProjectController extends Controller
     {
         $this->authorizeFeature($request, 'internalapp.project.kanban', 'update');
 
-        $data = $request->validate([
-            'status' => ['nullable', 'in:backlog,todo,in_progress,in_review,done'],
-            'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
-            'assignee_ids' => ['nullable', 'array'],
-            'assignee_ids.*' => ['integer', 'exists:users,id'],
-            'due_date' => ['nullable', 'date'],
-        ]);
-
+        $data = $this->validateTask($request, false, $id);
         $task = DB::table('internal_tasks')->find($id);
         abort_unless($task, 404);
+
+        $assigneeIds = array_key_exists('assignee_ids', $data)
+            ? array_values(array_unique(array_map('intval', (array) $data['assignee_ids'])))
+            : null;
+        unset($data['assignee_ids']);
 
         $progress = $data['progress'] ?? $task->progress;
         if (isset($data['status'])) {
@@ -261,28 +328,63 @@ class ProjectController extends Controller
             };
         }
 
-        $assigneeIds = array_key_exists('assignee_ids', $data)
-            ? array_values(array_unique(array_map('intval', (array) $data['assignee_ids'])))
-            : null;
-
-        DB::table('internal_tasks')->where('id', $id)->update(array_filter([
-            'status' => $data['status'] ?? null,
+        $update = array_filter(array_merge($data, [
             'progress' => $progress,
-            'assignee_id' => $assigneeIds !== null ? ($assigneeIds[0] ?? null) : ($data['assignee_id'] ?? null),
-            'due_date' => $data['due_date'] ?? null,
+            'assignee_id' => $assigneeIds !== null ? ($assigneeIds[0] ?? null) : null,
             'updated_at' => now(),
-        ], fn ($value) => ! is_null($value)));
+        ]), fn ($value) => ! is_null($value));
+
+        DB::table('internal_tasks')->where('id', $id)->update($update);
 
         if ($assigneeIds !== null) {
             \App\Services\InternalAppService::syncTaskAssignees($id, $assigneeIds);
         }
 
         \App\Services\InternalAppService::activity($id, 'updated', 'Task diperbarui via mobile');
+        \App\Services\InternalAppService::refreshProjectProgress((int) $task->project_id);
 
         $task = DB::table('internal_tasks')->find($id);
         $task->assignee_ids = \App\Services\InternalAppService::taskAssigneeIds($id);
 
         return response()->json(['message' => 'Task diperbarui.', 'task' => $task]);
+    }
+
+    public function destroyTask(Request $request, int $id)
+    {
+        $this->authorizeFeature($request, 'internalapp.project.kanban', 'delete');
+
+        $task = DB::table('internal_tasks')->find($id);
+        abort_unless($task, 404);
+
+        DB::table('internal_tasks')->where('id', $id)->delete();
+        \App\Services\InternalAppService::refreshProjectProgress((int) $task->project_id);
+
+        return response()->json(['status' => true, 'message' => 'Task dihapus.']);
+    }
+
+    private function validateTask(Request $request, bool $creating = false, ?int $taskId = null): array
+    {
+        $required = $creating ? 'required' : 'sometimes';
+
+        $data = $request->validate([
+            'project_id' => [$creating ? 'required' : 'sometimes', 'integer', 'exists:internal_projects,id'],
+            'title' => [$required, 'string', 'max:200'],
+            'description' => ['nullable', 'string'],
+            'status' => ['nullable', 'in:backlog,todo,in_progress,in_review,done'],
+            'priority' => ['nullable', 'in:low,medium,high,urgent'],
+            'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
+            'assignee_ids' => ['nullable', 'array'],
+            'assignee_ids.*' => ['integer', 'exists:users,id'],
+            'start_date' => ['nullable', 'date'],
+            'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'estimated_hours' => ['nullable', 'numeric', 'min:0'],
+            'labels' => ['nullable', 'string', 'max:500'],
+            'is_milestone' => ['nullable', 'boolean'],
+        ]);
+
+        $data['is_milestone'] = $request->boolean('is_milestone');
+
+        return $data;
     }
 
     private function authorizeFeature(Request $request, string $code, string $action = 'read'): void

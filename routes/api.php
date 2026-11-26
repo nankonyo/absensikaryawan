@@ -94,12 +94,16 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
     Route::prefix('projects')->group(function () {
         Route::get('/', [ProjectController::class, 'index']);
         Route::post('/', [ProjectController::class, 'store']);
+        Route::post('tasks', [ProjectController::class, 'storeTask']);
         Route::get('kanban', [ProjectController::class, 'kanban']);
         Route::get('gantt', [ProjectController::class, 'gantt']);
         Route::get('{id}', [ProjectController::class, 'show']);
+        Route::put('{id}', [ProjectController::class, 'update']);
+        Route::delete('{id}', [ProjectController::class, 'destroy']);
         Route::get('{id}/tasks', [ProjectController::class, 'tasks']);
         Route::post('{id}/members', [ProjectController::class, 'updateMembers']);
         Route::post('tasks/{task}', [ProjectController::class, 'updateTask']);
+        Route::delete('tasks/{task}', [ProjectController::class, 'destroyTask']);
     });
 
     Route::prefix('activities')->group(function () {
@@ -125,6 +129,7 @@ Route::middleware('api-token')->prefix('mobile')->group(function () {
         Route::get('{resource}', [AdminResourceController::class, 'index']);
         Route::post('{resource}', [AdminResourceController::class, 'store']);
         Route::post('attendances/{id}/verify', [AdminResourceController::class, 'verifyAttendance']);
+        Route::post('attendances/{id}/reason', [AdminResourceController::class, 'updateAttendanceReason']);
         Route::put('{resource}/{id}', [AdminResourceController::class, 'update']);
         Route::delete('{resource}/{id}', [AdminResourceController::class, 'destroy']);
     });

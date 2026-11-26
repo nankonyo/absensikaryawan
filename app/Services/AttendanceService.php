@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\Attendance;
 use App\Models\AttendanceReason;
-use App\Models\User;
 use App\Models\Setting;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 
@@ -46,7 +46,12 @@ class AttendanceService
             $gpsValidation['message'] = __('ui.gps_valid');
         }
 
-        $verification = $this->resolveVerification($gpsValidation, $data, $existing);
+        $verification = $this->resolveVerification($user, $gpsValidation, $data, $existing);
+
+        if ($workMode !== 'WFO' && empty($verification['reason_id']) && ($verification['status'] ?? null) === 'valid') {
+            $modeReason = AttendanceReason::firstOrCreate(['name' => $workMode], ['is_active' => true]);
+            $verification['reason_id'] = $modeReason->id;
+        }
 
         if (isset($verification['error'])) {
             return [
@@ -148,7 +153,12 @@ class AttendanceService
             $gpsValidation['message'] = __('ui.gps_valid');
         }
 
-        $verification = $this->resolveVerification($gpsValidation, $data, $attendance);
+        $verification = $this->resolveVerification($user, $gpsValidation, $data, $attendance);
+
+        if ($workMode !== 'WFO' && empty($verification['reason_id']) && ($verification['status'] ?? null) === 'valid') {
+            $modeReason = AttendanceReason::firstOrCreate(['name' => $workMode], ['is_active' => true]);
+            $verification['reason_id'] = $modeReason->id;
+        }
 
         if (isset($verification['error'])) {
             return [
@@ -233,7 +243,7 @@ class AttendanceService
     /**
      * Decide whether an attendance is valid or must wait for verification.
      */
-    protected function resolveVerification(array $gpsValidation, array $data, ?Attendance $existing = null): array
+    protected function resolveVerification(User $user, array $gpsValidation, array $data, ?Attendance $existing = null): array
     {
         if ($gpsValidation['valid']) {
             $status = match ($existing?->status) {
@@ -264,6 +274,14 @@ class AttendanceService
             $reason = $existing->attendanceReason;
         }
 
+        if ($this->isOutsideZoneExempt($user)) {
+            return [
+                'status' => 'valid',
+                'reason_id' => $reason?->id,
+                'notes' => $data['notes'] ?? null,
+            ];
+        }
+
         if (! $reason) {
             return [
                 'error' => __('ui.attendance_reason_required'),
@@ -281,11 +299,43 @@ class AttendanceService
     /**
      * Employee work mode. Unknown values fall back to the strict WFO mode.
      */
-    public function workMode(User $user): string
+    public function workMode(User $user, ?Carbon $date = null): string
     {
         $mode = strtoupper((string) ($user->employeeSetting?->work_mode ?? 'WFO'));
+        $mode = in_array($mode, ['WFO', 'WFH', 'WFA'], true) ? $mode : 'WFO';
 
-        return in_array($mode, ['WFO', 'WFH', 'WFA'], true) ? $mode : 'WFO';
+        // Karyawan yang statusnya WFH/WFA bebas dan tidak diubah oleh jadwal mingguan.
+        if ($mode !== 'WFO') {
+            return $mode;
+        }
+
+        $date = $date ?: Carbon::now();
+        $weeklyModes = Setting::get('weekly_work_modes', []);
+
+        if (is_string($weeklyModes)) {
+            $weeklyModes = json_decode($weeklyModes, true) ?: [];
+        }
+
+        $weeklyMode = strtoupper((string) (is_array($weeklyModes) ? ($weeklyModes[$date->isoWeekday()] ?? '') : ''));
+
+        if (in_array($weeklyMode, ['WFO', 'WFH', 'WFA'], true)) {
+            return $weeklyMode;
+        }
+
+        return 'WFO';
+    }
+
+    protected function isOutsideZoneExempt(User $user): bool
+    {
+        $roles = Setting::get('outside_zone_exempt_roles', ['general_manager', 'sekretaris']);
+
+        if (is_string($roles)) {
+            $roles = json_decode($roles, true) ?: [];
+        }
+
+        $roleName = $user->role?->name;
+
+        return $roleName !== null && in_array($roleName, (array) $roles, true);
     }
 
     /**
@@ -297,14 +347,14 @@ class AttendanceService
         $image = str_replace('data:image/jpeg;base64,', '', $base64Data);
         $image = str_replace(' ', '+', $image);
         $imageData = base64_decode($image);
-        
+
         // Generate unique filename
-        $filename = $type . '_' . $userId . '_' . time() . '.jpg';
-        $path = 'attendance/' . $type . '/' . $filename;
-        
+        $filename = $type.'_'.$userId.'_'.time().'.jpg';
+        $path = 'attendance/'.$type.'/'.$filename;
+
         // Store file
         Storage::disk('public')->put($path, $imageData);
-        
+
         return $path;
     }
 
@@ -330,6 +380,7 @@ class AttendanceService
     {
         // Parse check_in - it could be datetime or time only
         $start = Carbon::parse($checkIn);
+
         return $checkOut->diffInMinutes($start, true);
     }
 
@@ -357,7 +408,7 @@ class AttendanceService
         if ($month) {
             $date = Carbon::createFromFormat('Y-m', $month);
             $query->whereYear('date', $date->year)
-                  ->whereMonth('date', $date->month);
+                ->whereMonth('date', $date->month);
         }
 
         if ($status) {

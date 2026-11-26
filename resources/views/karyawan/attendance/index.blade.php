@@ -20,7 +20,7 @@
             <div class="mb-4 flex items-center justify-between gap-3">
                 <h2 class="text-xl font-bold text-gray-900">{{ __('ui.todays_attendance') }}</h2>
                 <span class="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                    {{ __('ui.work_mode') }}: {{ auth()->user()->work_mode }}
+                    {{ __('ui.work_mode') }}: {{ $workMode }}
                 </span>
             </div>
 

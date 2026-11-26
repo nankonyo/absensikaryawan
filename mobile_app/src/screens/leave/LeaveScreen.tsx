@@ -6,6 +6,7 @@ import { Badge, Button, Card, EmptyState, SectionTitle } from '../../components/
 import { Field } from '../../components/Field';
 import { useAuth } from '../../context/AuthContext';
 import { can } from '../../utils/permissions';
+import { formatLabel } from '../../utils/labels';
 import { leaveApi } from '../../api/endpoints';
 import { apiMessage } from '../../api/client';
 import type { Leave, LeaveType } from '../../types';
@@ -88,7 +89,7 @@ export const LeaveScreen = () => {
           <View style={styles.rowBetween}>
             <Text style={styles.leaveTitle}>{leave.leave_type?.name ?? 'Cuti'}</Text>
             <Badge
-              label={leave.status.toUpperCase()}
+              label={formatLabel(leave.status)}
               bg={statusColor(leave.status).bg}
               color={statusColor(leave.status).text}
             />

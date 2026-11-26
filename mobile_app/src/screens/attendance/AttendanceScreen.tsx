@@ -8,6 +8,7 @@ import { Badge, Button, Card, EmptyState, SectionTitle } from '../../components/
 import { Field } from '../../components/Field';
 import { useFaceCapture } from '../../components/FaceCaptureProvider';
 import { attendanceApi } from '../../api/endpoints';
+import { formatLabel } from '../../utils/labels';
 import { apiMessage } from '../../api/client';
 import type { Attendance } from '../../types';
 import { colors, radius, spacing, statusColor } from '../../theme';
@@ -342,7 +343,7 @@ export const AttendanceScreen = () => {
                 </Text>
               </View>
               <Badge
-                label={attendance?.status?.toUpperCase() ?? 'BELUM'}
+                label={formatLabel(attendance?.status) || 'Belum'}
                 bg={statusColor(attendance?.status).bg}
                 color={statusColor(attendance?.status).text}
               />
@@ -439,7 +440,7 @@ export const AttendanceScreen = () => {
                     </Text>
                   </View>
                   <Badge
-                    label={item.status?.toUpperCase() ?? '-'}
+                    label={formatLabel(item.status) || '-'}
                     bg={statusColor(item.status).bg}
                     color={statusColor(item.status).text}
                   />

@@ -216,7 +216,7 @@ class Installation extends Model
 
         if (Schema::hasTable('attendance_reasons') && DB::table('attendance_reasons')->count() === 0) {
             $now = now();
-            foreach (['WFO', 'WFH', 'Tugas dalam kota', 'Tugas pelatihan', 'Tugas keluar kota'] as $name) {
+            foreach (['WFO', 'WFH', 'WFA', 'Tugas dalam kota', 'Tugas pelatihan', 'Tugas keluar kota'] as $name) {
                 DB::table('attendance_reasons')->insert([
                     'name' => $name,
                     'is_active' => true,
