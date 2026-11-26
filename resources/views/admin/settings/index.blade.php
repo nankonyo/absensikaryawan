@@ -140,8 +140,13 @@
                         Atur mode kerja default per hari. Contoh: Kamis dan Jumat WFH untuk kebijakan hybrid.
                     </p>
                 </div>
+                @php
+                    $weeklyHolidays = array_map('intval', (array) ($initial['weekly_holidays'] ?? []));
+                    $workModeDays = [1 => ['Senin', 1], 2 => ['Selasa', 2], 3 => ['Rabu', 3], 4 => ['Kamis', 4], 5 => ['Jumat', 5], 6 => ['Sabtu', 6], 7 => ['Minggu', 0]];
+                @endphp
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    @foreach ([1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'] as $day => $label)
+                    @foreach ($workModeDays as $day => [$label, $phpDay])
+                        @continue(in_array($phpDay, $weeklyHolidays, true))
                         <div class="space-y-1.5">
                             <label class="block text-xs font-semibold text-slate-600">{{ $label }}</label>
                             <select x-model="form.weekly_work_modes[{{ $day }}]" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
@@ -152,7 +157,9 @@
                         </div>
                     @endforeach
                 </div>
-                <p class="text-xs text-slate-500">Mode ini dipakai otomatis saat karyawan absen pada hari tersebut.</p>
+                <p class="text-xs text-slate-500">
+                    Hanya hari kerja yang tampil. Hari yang ditandai libur mingguan pada pengaturan di bawah tidak perlu diatur mode kerjanya.
+                </p>
             </div>
 
             <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
